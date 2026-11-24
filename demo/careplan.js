@@ -130,7 +130,7 @@
 
   function sectionViewer(withReview) {
     const s = D.sections.find((x) => x.order === cp.sel);
-    const qaHere = D.qa.map((q, i) => ({ ...q, i })).filter((q) => q.regen === s.order && !cp.qaResolved[q.i]);
+    const qaHere = cp.stage >= 5 ? D.qa.map((q, i) => ({ ...q, i })).filter((q) => q.regen === s.order && !cp.qaResolved[q.i]) : [];
     return `<div class="cp-sections">
       <div class="cp-sec-list">
         <div class="cp-part">Part A – My care plan</div>
@@ -257,6 +257,7 @@
       const byOrder = new Map(o.sections.map((x) => [Math.round(x.order), x]));
       D.sections = D.sections.map((sec) => { const n = byOrder.get(sec.order); return n ? { ...sec, draft: n.text, final: n.text, sources: n.sources } : sec; });
       cp.regen = {};
+      D.qa = []; D.qaSummary = ""; cp.qaResolved = {};
     });
     if (a === "qa") return work("AI 4 is checking the draft for safety and quality…", () => { cp.stage = 5; }, async () => {
       const draft = D.sections.map((x) => `## ${x.title}\n${sectionText(x)}`).join("\n\n");
