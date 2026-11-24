@@ -1148,7 +1148,9 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 2px s
   .sidebar { position: static; height: auto; padding: 14px; }
   .sidebar .nav { flex-direction: row; flex-wrap: wrap; }
   .sidebar .nav-item { width: auto; }
-  .nav-group, .side-foot { display: none; }
+  .nav-group, .side-foot p, #reset-demo { display: none; }
+  .side-foot { padding-top: 10px; }
+  .ai-mode { grid-template-columns: 1fr 1fr; margin: 0; }
   .side-brand { padding-bottom: 12px; margin-bottom: 8px; }
   .welcome { grid-template-columns: 1fr; }
   .attention-list li { grid-template-columns: 1fr; gap: 6px; }
