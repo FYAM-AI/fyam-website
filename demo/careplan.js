@@ -14,7 +14,7 @@
       notes: ORIGINAL.managerNotes || "", liveRun: false, error: "", name: ORIGINAL.job.name || "", photo: "",
       stage: 0, busy: false, answers: {}, resolved: {}, regen: {}, reviewed: {},
       qaResolved: {}, approver: "", declaration: false, approved: false, blockedMsg: "",
-      sel: 1, factFilter: "all"
+      sel: 1, factFilter: "all", files: []
     });
   }
   reset();
@@ -69,6 +69,64 @@
   }
   const api = (workflow, fields) => window.SSLive.call("/api/generate", { workflow, fields }, 90000).then((r) => r.output);
 
+  // ---- file upload ----
+  const SAMPLES = [
+    { file: "samples/01_Local_authority_referral.pdf", rec: () => ORIGINAL.sourceDocs[0].text, pages: 2 },
+    { file: "samples/02_Hospital_discharge_letter.pdf", rec: () => ORIGINAL.sourceDocs[1].text, pages: 1 },
+    { file: "samples/03_Family_information_sheet_HANDWRITTEN.jpg", rec: () => ORIGINAL.sourceDocs[2].text, pages: 1, handwritten: true },
+    { file: "samples/04_Manager_initial_assessment_notes_HANDWRITTEN.jpg", rec: () => ORIGINAL.managerNotes, pages: 1, handwritten: true, role: "notes" }
+  ];
+  const baseName = (n) => n.replace(/\.[a-z0-9]+$/i, "").replace(/_/g, " ").replace(/^\d+\s+/, "").replace(/\s+HANDWRITTEN$/i, "").trim();
+  const guessRole = (n) => (/(manager|visit|assessment).*note|notes?\b/i.test(n) ? "notes" : "source");
+  let fileSeq = 0;
+  function syncDocs() {
+    if (!cp.files.length) { D.sourceDocs = JSON.parse(JSON.stringify(ORIGINAL.sourceDocs)); cp.notes = ORIGINAL.managerNotes || ""; return; }
+    const done = cp.files.filter((f) => f.status === "done");
+    D.sourceDocs = done.filter((f) => f.role === "source").map((f) => ({ name: f.label, text: f.text }));
+    cp.notes = done.filter((f) => f.role === "notes").map((f) => f.text.replace(/\[Page \d+\]\n?/g, "").trim()).join("\n");
+  }
+  function addFiles(list, sample) {
+    [...list].forEach((file, i) => {
+      const sm = sample ? sample[i] : null;
+      const f = { id: ++fileSeq, name: file.name, label: baseName(file.name), kind: window.CPUpload.kindOf(file), status: "reading", role: (sm && sm.role) || guessRole(file.name), text: "", thumb: "", how: "", pages: 0, handwritten: false };
+      cp.files.push(f); render();
+      const ai = live() ? (images, name) => api("read_document", { images, name }) : null;
+      const useRecorded = (why) => Object.assign(f, { status: "done", text: sm.rec(), pages: sm.pages, handwritten: !!sm.handwritten, how: why });
+      const p = sm && !live()
+        ? new Promise((r) => setTimeout(r, 700 + i * 500)).then(() => { useRecorded(sm.handwritten ? "Handwriting read (offline demo – recorded result)" : "Read (offline demo – recorded result)"); return window.CPUpload.kindOf(file) === "Photo" ? window.CPUpload.read(file, null).catch((e) => { f.thumb = e.thumb || ""; }) : null; })
+        : window.CPUpload.read(file, ai).then((o) => Object.assign(f, o, { status: "done" }));
+      p.catch((e) => { if (e.thumb) f.thumb = e.thumb; if (sm) useRecorded("Recorded result used (" + e.message + ")"); else Object.assign(f, { status: "error", how: e.message }); })
+        .finally(() => { syncDocs(); render(); });
+    });
+  }
+  async function loadSamples() {
+    cp.files = []; syncDocs();
+    const files = await Promise.all(SAMPLES.map(async (s) => { const b = await (await fetch(s.file)).blob(); return new File([b], s.file.split("/").pop(), { type: b.type }); }));
+    addFiles(files, SAMPLES);
+  }
+  const reading = () => cp.files.some((f) => f.status === "reading");
+  function fileCards() {
+    if (!cp.files.length) return "";
+    const icon = (f) => f.thumb ? `<img src="${f.thumb}" alt="">` : `<span>${f.kind === "Photo" ? "IMG" : esc(f.kind === "Word" ? "DOC" : f.kind.toUpperCase().slice(0, 4))}</span>`;
+    return `<div class="cp-files">${cp.files.map((f, i) => `
+      <div class="cp-file ${f.status}">
+        <div class="cp-file-thumb">${icon(f)}</div>
+        <div class="cp-file-main">
+          <strong>${esc(f.name)}</strong>
+          <p class="cp-muted">${esc(f.kind)}${f.pages ? ` · ${f.pages} page${f.pages > 1 ? "s" : ""}` : ""} · ${f.status === "reading" ? '<span class="cp-spin"></span> Reading…' : f.status === "error" ? `<span class="cp-err">${esc(f.how)}</span>` : esc(f.how)}
+            ${f.handwritten ? '<span class="cp-pill hand">Handwritten</span>' : ""}</p>
+          ${f.status === "done" ? `<details><summary>What the AI read from this file</summary><textarea data-cp-ftext="${i}" rows="8">${esc(f.text)}</textarea></details>` : ""}
+        </div>
+        <div class="cp-file-side">
+          <select data-cp-role="${i}" aria-label="How to use this file">
+            <option value="source" ${f.role === "source" ? "selected" : ""}>Source document</option>
+            <option value="notes" ${f.role === "notes" ? "selected" : ""}>Manager's notes</option>
+          </select>
+          <button class="ghost-button small" data-cp-rmfile="${i}" aria-label="Remove file">Remove</button>
+        </div>
+      </div>`).join("")}</div>`;
+  }
+
   function stepper() {
     return `<ol class="cp-stepper">${STAGES.map((s, i) => `
       <li class="${i < cp.stage || cp.approved ? "done" : i === cp.stage ? "current" : ""}">
@@ -105,14 +163,20 @@
           <p class="cp-muted">The photo is cropped to a square on a white background automatically. Use a real photo only with the person's photography consent.</p>
         </div>
       </div>
-      <p class="cp-muted">Typed, scanned or photographed documents. Each file is read, classified and checked for legibility.</p>
-      ${live() ? `<p class="cp-live-note">Live AI is on. Change anything in these fictional documents – for example the allergy line – and the AI will work from your version.</p>
-      <div class="cp-srcdocs">${D.sourceDocs.map((d, i) => `<label class="cp-srcdoc"><strong>${esc(d.name)}</strong><textarea data-cp-doc="${i}" rows="9">${esc(d.text)}</textarea></label>`).join("")}</div>` : `
-      <div class="cp-docs">${D.docs.map((d) => `
-        <div class="cp-doc"><div class="cp-doc-icon">PDF</div><div><strong>${esc(d.name)}</strong>
-        <p class="cp-muted">${d.pages} page${d.pages > 1 ? "s" : ""} · uploaded</p></div></div>`).join("")}</div>`}
+      <label class="cp-drop" data-cp-drop>
+        <input type="file" multiple accept=".pdf,.docx,.txt,image/*" data-cp-files hidden>
+        <strong>Drop the referral pack here, or click to choose files</strong>
+        <span>Referrals, discharge letters, assessments, family sheets – PDF, Word, photos or scans, typed or handwritten</span>
+      </label>
+      <div class="cp-row">
+        <button class="ghost-button small" data-cp="samples" ${reading() ? "disabled" : ""}>Load the sample referral pack (4 files)</button>
+        ${cp.files.length ? '<button class="ghost-button small" data-cp="clearfiles">Clear files</button>' : ""}
+      </div>
+      <p class="cp-muted">Demo: fictional or anonymised documents only. Mark the registered manager's own notes as "Manager's notes" – they are used to answer the AI's questions in step 3.</p>
+      ${fileCards()}
+      ${!cp.files.length ? `<p class="cp-muted">No files yet – or continue with the built-in example documents (${D.sourceDocs.map((d) => esc(d.name)).join(", ")}).</p>` : ""}
       ${busyBox()}
-      <button class="primary-button" data-cp="extract" ${cp.busy ? "disabled" : ""}>Extract information with AI</button>
+      <button class="primary-button" data-cp="extract" ${cp.busy || reading() || (cp.files.length && !D.sourceDocs.length) ? "disabled" : ""}>${reading() ? "Reading files…" : "Extract information with AI"}</button>
     </div>`;
   }
 
@@ -307,8 +371,9 @@
 
   // ---- events ----
   document.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-cp],[data-cp-filter],[data-cp-resolve],[data-cp-sel],[data-cp-review],[data-cp-regen]");
+    const b = e.target.closest("[data-cp],[data-cp-filter],[data-cp-resolve],[data-cp-sel],[data-cp-review],[data-cp-regen],[data-cp-rmfile]");
     if (!b || !document.querySelector(".cp-layout")) return;
+    if (b.dataset.cpRmfile !== undefined) { cp.files.splice(+b.dataset.cpRmfile, 1); syncDocs(); return render(); }
     const a = b.dataset.cp;
     if (b.dataset.cpFilter) { cp.factFilter = b.dataset.cpFilter; return render(); }
     if (b.dataset.cpResolve) {
@@ -329,7 +394,10 @@
         sec.finalFields = o.fields; sec.finalRisks = o.risks;
       } : null);
     }
-    if (a === "extract") return work("AI 1 is reading and classifying the documents…", () => { cp.stage = 1; }, async () => {
+    if (a === "extract") return work("AI 1 is reading and classifying the documents…", () => {
+      cp.stage = 1;
+      if (cp.files.length && !cp.liveRun) D.docs = D.sourceDocs.map((d, i) => ({ name: d.name, pages: (d.text.match(/\[Page/g) || [1]).length, type: (ORIGINAL.docs[i] || {}).type || "Classified", facts: (ORIGINAL.docs[i] || {}).facts || 0 }));
+    }, async () => {
       const docs = D.sourceDocs.map((d) => `=== DOCUMENT: ${d.name} ===\n${d.text}`).join("\n\n");
       const o = await api("careplan_extract", { documents: docs });
       D.facts = o.facts;
@@ -369,12 +437,15 @@
     }
     if (a === "reset") { reset(); return render(); }
     if (a === "samplephoto") return samplePortrait();
+    if (a === "samples") return loadSamples().catch((e) => { cp.error = "Could not load the sample pack: " + e.message; render(); });
+    if (a === "clearfiles") { cp.files = []; syncDocs(); return render(); }
     if (a === "nophoto") { cp.photo = ""; return render(); }
     if (a === "docx-draft") return downloadDocx(false);
     if (a === "docx-final") return downloadDocx(true);
   });
   document.addEventListener("input", (e) => {
     if (e.target.matches("[data-cp-doc]")) D.sourceDocs[e.target.dataset.cpDoc].text = e.target.value;
+    if (e.target.matches("[data-cp-ftext]")) { cp.files[e.target.dataset.cpFtext].text = e.target.value; syncDocs(); }
     if (e.target.matches("[data-cp-notes]")) cp.notes = e.target.value;
     if (e.target.matches("[data-cp-name]")) cp.name = e.target.value;
     if (e.target.matches("[data-cp-approver]")) cp.approver = e.target.value;
@@ -384,7 +455,12 @@
   document.addEventListener("change", (e) => {
     if (e.target.matches("[data-cp-decl]")) { cp.declaration = e.target.checked; render(); }
     if (e.target.matches("[data-cp-photo]") && e.target.files[0]) processPhoto(e.target.files[0]);
+    if (e.target.matches("[data-cp-files]") && e.target.files.length) addFiles(e.target.files);
+    if (e.target.matches("[data-cp-role]")) { cp.files[e.target.dataset.cpRole].role = e.target.value; syncDocs(); render(); }
   });
+  document.addEventListener("dragover", (e) => { const z = e.target.closest && e.target.closest("[data-cp-drop]"); if (z) { e.preventDefault(); z.classList.add("over"); } });
+  document.addEventListener("dragleave", (e) => { const z = e.target.closest && e.target.closest("[data-cp-drop]"); if (z) z.classList.remove("over"); });
+  document.addEventListener("drop", (e) => { const z = e.target.closest && e.target.closest("[data-cp-drop]"); if (z) { e.preventDefault(); z.classList.remove("over"); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); } });
 
   window.renderCarePlanBuilder = function () {
     const title = document.querySelector("#workflow-title");
