@@ -23,9 +23,19 @@
   const mark = (s) => esc(s).replace(/\[(TO BE VERIFIED[^\]]*|INFORMATION REQUIRED[^\]]*)\]/g, '<mark class="cp-flag">[$1]</mark>').replace(/\n/g, "<br>");
   const TPL = window.CAREPLAN_TEMPLATE || [];
   const tplOf = (order) => TPL.find((t) => t.order === order) || {};
-  const secData = (s) => (cp.regen[s.order] && s.finalFields ? { fields: s.finalFields, risks: s.finalRisks || [] } : { fields: s.draftFields || [], risks: s.draftRisks || [] });
+  // The AI only ever sees the reference (e.g. SU-TEST-001); the real name is put back here, in the browser.
+  const NAME_LABELS = /^(name|person's name|name of person being assessed)$/i;
+  const reid = (v) => String(v || "").split(D.job.su).join(displayName());
+  const rawData = (s) => (cp.regen[s.order] && s.finalFields ? { fields: s.finalFields, risks: s.finalRisks || [] } : { fields: s.draftFields || [], risks: s.draftRisks || [] });
+  const secData = (s) => {
+    const d = rawData(s);
+    return {
+      fields: d.fields.map((f) => ({ label: f.label, value: NAME_LABELS.test(f.label) ? displayName() : reid(f.value) })),
+      risks: d.risks.map((r) => ({ ...r, who_at_risk: reid(r.who_at_risk), risk: reid(r.risk), consequences: reid(r.consequences), current_measures: reid(r.current_measures), additional_actions: reid(r.additional_actions) }))
+    };
+  };
   const fieldsToText = (d) => [...(d.fields || []).map((f) => `${f.label}: ${f.value}`), ...(d.risks || []).map((r, i) => `Risk ${i + 1}: ${r.risk}\n  Who is at risk: ${r.who_at_risk}\n  Possible consequences: ${r.consequences}\n  Measures in place: ${r.current_measures}\n  Additional actions: ${r.additional_actions}`)].join("\n");
-  const sectionText = (s) => fieldsToText(secData(s));
+  const sectionText = (s) => fieldsToText(rawData(s)); // what is sent to the AI: reference only, never the name
   const displayName = () => (cp.name || D.job.name || D.job.su);
   const openClar = () => D.clarifications.filter((_, i) => !cp.resolved[i]).length;
   const openBlocking = () => D.qa.filter((q, i) => q.severity === "Blocking" && !cp.qaResolved[i]).length;
@@ -192,7 +202,8 @@
     img.onload = () => {
       const size = 600, c = document.createElement("canvas"); c.width = c.height = size;
       const g = c.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, size, size);
-      const s = Math.min(img.width, img.height); const sx = (img.width - s) / 2; const sy = Math.max(0, (img.height - s) / 2 - s * 0.08);
+      const iw = img.naturalWidth || img.width || size, ih = img.naturalHeight || img.height || size;
+      const s = Math.min(iw, ih); const sx = (iw - s) / 2; const sy = Math.max(0, (ih - s) / 2 - s * 0.08);
       g.drawImage(img, sx, sy, s, s, 0, 0, size, size);
       cp.photo = c.toDataURL("image/jpeg", 0.9); render();
     };
@@ -200,7 +211,7 @@
   }
   function samplePortrait() {
     // Illustrated, clearly fictional portrait on a white background (no real person).
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#ffffff"/><circle cx="300" cy="250" r="118" fill="#6b4a3a"/><ellipse cx="300" cy="262" rx="92" ry="104" fill="#e0b394"/><path d="M196 240c4-86 62-128 110-128s104 40 108 128c-24-48-60-70-108-70s-86 22-110 70z" fill="#6b4a3a"/><circle cx="266" cy="262" r="9" fill="#2b2b2b"/><circle cx="334" cy="262" r="9" fill="#2b2b2b"/><path d="M270 312q30 22 60 0" stroke="#9a5a4a" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M120 600c10-118 88-186 180-186s170 68 180 186z" fill="#2f78b7"/><path d="M262 414l38 46 38-46" fill="#ffffff"/></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="#ffffff"/><circle cx="300" cy="250" r="118" fill="#6b4a3a"/><ellipse cx="300" cy="262" rx="92" ry="104" fill="#e0b394"/><path d="M196 240c4-86 62-128 110-128s104 40 108 128c-24-48-60-70-108-70s-86 22-110 70z" fill="#6b4a3a"/><circle cx="266" cy="262" r="9" fill="#2b2b2b"/><circle cx="334" cy="262" r="9" fill="#2b2b2b"/><path d="M270 312q30 22 60 0" stroke="#9a5a4a" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M120 600c10-118 88-186 180-186s170 68 180 186z" fill="#2f78b7"/><path d="M262 414l38 46 38-46" fill="#ffffff"/></svg>`;
     processPhoto("data:image/svg+xml;base64," + btoa(svg));
   }
 
