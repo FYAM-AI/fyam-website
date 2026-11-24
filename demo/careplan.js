@@ -101,7 +101,7 @@
   }
   async function loadSamples() {
     cp.files = []; syncDocs();
-    const files = await Promise.all(SAMPLES.map(async (s) => { const b = await (await fetch(s.file)).blob(); return new File([b], s.file.split("/").pop(), { type: b.type }); }));
+    const files = await Promise.all(SAMPLES.map(async (s) => { const b = await (await fetch(s.file + "?v=2", { cache: "reload" })).blob(); return new File([b], s.file.split("/").pop(), { type: b.type }); }));
     addFiles(files, SAMPLES);
   }
   const reading = () => cp.files.some((f) => f.status === "reading");
