@@ -2,7 +2,8 @@ window.CAREPLAN_DEMO = {
  "job": {
   "ref": "TEST-CP-001",
   "su": "SU-TEST-001",
-  "location": "Test House (fictional)"
+  "location": "Test House (fictional)",
+  "name": "Grace Miller (fictional)"
  },
  "docs": [
   {

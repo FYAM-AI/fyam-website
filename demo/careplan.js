@@ -11,7 +11,7 @@
   function reset() {
     for (const k of Object.keys(ORIGINAL)) D[k] = JSON.parse(JSON.stringify(ORIGINAL[k]));
     Object.assign(cp, {
-      notes: ORIGINAL.managerNotes || "", liveRun: false, error: "",
+      notes: ORIGINAL.managerNotes || "", liveRun: false, error: "", name: ORIGINAL.job.name || "", photo: "",
       stage: 0, busy: false, answers: {}, resolved: {}, regen: {}, reviewed: {},
       qaResolved: {}, approver: "", declaration: false, approved: false, blockedMsg: "",
       sel: 1, factFilter: "all"
@@ -21,7 +21,12 @@
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const mark = (s) => esc(s).replace(/\[(TO BE VERIFIED[^\]]*|INFORMATION REQUIRED[^\]]*)\]/g, '<mark class="cp-flag">[$1]</mark>').replace(/\n/g, "<br>");
-  const sectionText = (s) => (cp.regen[s.order] ? s.final : s.draft);
+  const TPL = window.CAREPLAN_TEMPLATE || [];
+  const tplOf = (order) => TPL.find((t) => t.order === order) || {};
+  const secData = (s) => (cp.regen[s.order] && s.finalFields ? { fields: s.finalFields, risks: s.finalRisks || [] } : { fields: s.draftFields || [], risks: s.draftRisks || [] });
+  const fieldsToText = (d) => [...(d.fields || []).map((f) => `${f.label}: ${f.value}`), ...(d.risks || []).map((r, i) => `Risk ${i + 1}: ${r.risk}\n  Who is at risk: ${r.who_at_risk}\n  Possible consequences: ${r.consequences}\n  Measures in place: ${r.current_measures}\n  Additional actions: ${r.additional_actions}`)].join("\n");
+  const sectionText = (s) => fieldsToText(secData(s));
+  const displayName = () => (cp.name || D.job.name || D.job.su);
   const openClar = () => D.clarifications.filter((_, i) => !cp.resolved[i]).length;
   const openBlocking = () => D.qa.filter((q, i) => q.severity === "Blocking" && !cp.qaResolved[i]).length;
   const notReviewed = () => D.sections.filter((s) => !cp.reviewed[s.order]).length;
@@ -58,7 +63,7 @@
   function jobCard() {
     const status = cp.approved ? "APPROVED" : ["CREATED", "UPLOAD_RECEIVED", "REVIEW_REQUIRED", "READY_TO_GENERATE", "DRAFT_READY", "MANAGER_REVIEW", "READY_FOR_APPROVAL"][cp.stage];
     return `<div class="cp-job">
-      <div><span class="label">Care plan job</span><h3>${esc(D.job.ref)} · ${esc(D.job.su)}</h3>
+      <div><span class="label">Care plan job</span><h3>${esc(displayName())} · ${esc(D.job.ref)}</h3>
       <p class="cp-muted">${esc(D.job.location)} · Anonymised test data only</p></div>
       <span class="cp-status ${cp.approved ? "ok" : ""}">${status}</span></div>`;
   }
@@ -71,8 +76,20 @@
   // ---- stage views ----
   function vUpload() {
     return `<div class="panel cp-panel">
-      <span class="label">Step 1 · Upload source documents</span>
+      <span class="label">Step 1 · Person and source documents</span>
       <h3>Upload the referral pack</h3>
+      <div class="cp-person">
+        <div class="cp-photo">${cp.photo ? `<img src="${cp.photo}" alt="">` : '<span>No photo yet</span>'}</div>
+        <div class="cp-person-fields">
+          <label class="cp-field">Person's name (shown on the cover only – never sent to the AI)<input data-cp-name value="${esc(cp.name)}" placeholder="e.g. Grace Miller"></label>
+          <div class="cp-row">
+            <label class="ghost-button small cp-upload">Upload photo<input type="file" accept="image/*" data-cp-photo hidden></label>
+            <button class="ghost-button small" data-cp="samplephoto">Use sample portrait</button>
+            ${cp.photo ? '<button class="ghost-button small" data-cp="nophoto">Remove</button>' : ""}
+          </div>
+          <p class="cp-muted">The photo is cropped to a square on a white background automatically. Use a real photo only with the person's photography consent.</p>
+        </div>
+      </div>
       <p class="cp-muted">Typed, scanned or photographed documents. Each file is read, classified and checked for legibility.</p>
       ${live() ? `<p class="cp-live-note">Live AI is on. Change anything in these fictional documents – for example the allergy line – and the AI will work from your version.</p>
       <div class="cp-srcdocs">${D.sourceDocs.map((d, i) => `<label class="cp-srcdoc"><strong>${esc(d.name)}</strong><textarea data-cp-doc="${i}" rows="9">${esc(d.text)}</textarea></label>`).join("")}</div>` : `
@@ -128,6 +145,65 @@
     </div>`;
   }
 
+  function renderFields(s) {
+    const t = tplOf(s.order); const d = secData(s);
+    if (t.kind === "list") {
+      const items = ((d.fields.find((f) => /items/i.test(f.label)) || d.fields[0] || { value: "" }).value || "").split("\n").map((x) => x.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
+      return `<ul class="cp-list">${items.map((i) => `<li>${mark(i)}</li>`).join("")}</ul>`;
+    }
+    if (t.kind === "risks") {
+      return (d.risks || []).map((r, i) => `<div class="cp-risk"><h4>Risk ${i + 1}: ${esc(r.risk)}</h4>
+        <table class="cp-ftable"><tbody>
+          <tr><th>Who or what is at risk?</th><td>${mark(r.who_at_risk)}</td></tr>
+          <tr><th>Possible consequences</th><td>${mark(r.consequences)}</td></tr>
+          <tr><th>Measures currently in place</th><td>${mark(r.current_measures)}</td></tr>
+          <tr><th>Risk score</th><td><span class="cp-score">Likelihood __ × Consequence __ = __</span> <em class="cp-muted">scored by the manager, never by AI</em></td></tr>
+          <tr><th>Additional actions</th><td>${mark(r.additional_actions)}</td></tr>
+        </tbody></table></div>`).join("") || `<p>${mark("[INFORMATION REQUIRED: no risks recorded]")}</p>`;
+    }
+    const rows = (d.fields || []).map((f) => t.kind === "plan"
+      ? `<tr class="cp-planrow"><th colspan="2">${esc(f.label)}</th></tr><tr><td colspan="2">${mark(f.value)}</td></tr>`
+      : `<tr><th>${esc(f.label)}</th><td>${mark(f.value)}</td></tr>`).join("");
+    const sig = t.kind === "signatures" ? `<table class="cp-ftable cp-sig"><thead><tr><th>Date</th><th>Name</th><th>Signature</th></tr></thead><tbody>${"<tr><td></td><td></td><td></td></tr>".repeat(3)}</tbody></table><p class="cp-muted">Signatures are added by hand – never generated.</p>` : "";
+    return `<table class="cp-ftable"><tbody>${rows}</tbody></table>${sig}`;
+  }
+  function coverPreview() {
+    return `<div class="cp-cover">
+      <div class="cp-cover-title">My Support Plan</div>
+      <div class="cp-cover-photo">${cp.photo ? `<img src="${cp.photo}" alt="">` : "<span>Photo</span>"}</div>
+      <div class="cp-cover-name">Name: ${esc(displayName())}</div>
+      <p class="cp-muted">${esc(D.job.location)} · ${esc(D.job.ref)}</p></div>`;
+  }
+  function downloadDocx(approved) {
+    const data = {
+      job: { ...D.job, name: displayName(), status: approved ? "APPROVED" : "DRAFT", approver: cp.approver, version: 1, review: approved ? new Date(Date.now() + 182 * 864e5).toLocaleDateString("en-GB") : "" },
+      photo: cp.photo,
+      sections: D.sections.map((s) => ({ order: s.order, title: tplOf(s.order).title || s.title.replace(/^\d+\s*/, ""), sources: s.sources, ...secData(s) }))
+    };
+    const blob = window.buildCarePlanDocx(data);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `FYAM_Care_Plan_${displayName().replace(/[^A-Za-z0-9]+/g, "_")}_${approved ? "APPROVED" : "DRAFT"}.docx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+  function processPhoto(file) {
+    const img = new Image();
+    img.onload = () => {
+      const size = 600, c = document.createElement("canvas"); c.width = c.height = size;
+      const g = c.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, size, size);
+      const s = Math.min(img.width, img.height); const sx = (img.width - s) / 2; const sy = Math.max(0, (img.height - s) / 2 - s * 0.08);
+      g.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+      cp.photo = c.toDataURL("image/jpeg", 0.9); render();
+    };
+    img.src = typeof file === "string" ? file : URL.createObjectURL(file);
+  }
+  function samplePortrait() {
+    // Illustrated, clearly fictional portrait on a white background (no real person).
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><rect width="600" height="600" fill="#ffffff"/><circle cx="300" cy="250" r="118" fill="#6b4a3a"/><ellipse cx="300" cy="262" rx="92" ry="104" fill="#e0b394"/><path d="M196 240c4-86 62-128 110-128s104 40 108 128c-24-48-60-70-108-70s-86 22-110 70z" fill="#6b4a3a"/><circle cx="266" cy="262" r="9" fill="#2b2b2b"/><circle cx="334" cy="262" r="9" fill="#2b2b2b"/><path d="M270 312q30 22 60 0" stroke="#9a5a4a" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M120 600c10-118 88-186 180-186s170 68 180 186z" fill="#2f78b7"/><path d="M262 414l38 46 38-46" fill="#ffffff"/></svg>`;
+    processPhoto("data:image/svg+xml;base64," + btoa(svg));
+  }
+
   function sectionViewer(withReview) {
     const s = D.sections.find((x) => x.order === cp.sel);
     const qaHere = cp.stage >= 5 ? D.qa.map((q, i) => ({ ...q, i })).filter((q) => q.regen === s.order && !cp.qaResolved[q.i]) : [];
@@ -142,7 +218,7 @@
       <div class="cp-sec-body">
         <span class="label">${s.part === "A" ? "Part A" : "Part B"}</span>
         <h3>${esc(s.title)}</h3>
-        <div class="cp-text">${mark(sectionText(s))}</div>
+        ${s.order === 1 ? coverPreview() : renderFields(s)}
         <p class="cp-evidence">Evidence: ${esc(s.sources)}</p>
         ${qaHere.map((q) => `<div class="cp-qa ${q.severity === "Blocking" ? "bad" : "warn"}"><strong>${esc(q.severity)} · ${esc(q.type)}</strong><p>${esc(q.finding)}</p>
           <textarea rows="2" data-cp-comment="${q.i}">${esc(q.comment)}</textarea>
@@ -187,13 +263,13 @@
         <li class="${cp.declaration ? "ok" : ""}">Approver declaration ticked</li>
       </ul>
       ${cp.approved ? `<p class="cp-summary">Approved by ${esc(cp.approver)} on ${new Date().toLocaleDateString("en-GB")}. Logged to the audit trail. Signatures are added by hand – never generated.</p>
-        <div class="cp-row"><a class="primary-button" href="${finalFile}" download>Download approved Word care plan</a>
+        <div class="cp-row"><button class="primary-button" data-cp="docx-final">Download approved Word care plan</button>
         <button class="ghost-button" data-cp="back">Back to sections</button></div>` : `
       <label class="cp-field">Approver (registered / service manager)<input data-cp-approver value="${esc(cp.approver)}" placeholder="Name"></label>
       <label class="cp-check"><input type="checkbox" data-cp-decl ${cp.declaration ? "checked" : ""}> I have reviewed this plan against the source documents and confirm it is accurate and appropriate. I understand the AI drafted it and I am responsible for its content.</label>
       ${cp.blockedMsg ? `<div class="cp-qa bad"><strong>Approval blocked</strong><p>${esc(cp.blockedMsg)}</p></div>` : ""}
       <div class="cp-row"><button class="primary-button" data-cp="approve">Approve care plan</button>
-        <a class="ghost-button" href="${draftFile}" download>Download draft (watermarked)</a>
+        <button class="ghost-button" data-cp="docx-draft">Download draft (watermarked)</button>
         <button class="ghost-button" data-cp="back">Back to sections</button></div>`}
     </div>`;
   }
@@ -233,7 +309,7 @@
         cp.qaResolved[i] = true; cp.reviewed[q.regen] = false;
       }, sec ? async () => {
         const o = await api("careplan_regen", { title: sec.title, text: sectionText(sec), comment: q.comment, facts: factLines(), answers: answerLines() });
-        sec.final = o.text;
+        sec.finalFields = o.fields; sec.finalRisks = o.risks;
       } : null);
     }
     if (a === "extract") return work("AI 1 is reading and classifying the documents…", () => { cp.stage = 1; }, async () => {
@@ -253,9 +329,9 @@
       cp.stage = 3; return render();
     }
     if (a === "draft") return work("AI 3 is drafting all 25 sections from the evidence – about 30 seconds…", () => { cp.stage = 4; cp.sel = 5; }, async () => {
-      const o = await api("careplan_draft", { facts: factLines(), answers: answerLines(), reference: D.job.su });
+      const o = await api("careplan_draft", { facts: factLines(), answers: answerLines(), reference: D.job.su, template: window.CAREPLAN_TEMPLATE_TEXT });
       const byOrder = new Map(o.sections.map((x) => [Math.round(x.order), x]));
-      D.sections = D.sections.map((sec) => { const n = byOrder.get(sec.order); return n ? { ...sec, draft: n.text, final: n.text, sources: n.sources } : sec; });
+      D.sections = D.sections.map((sec) => { const n = byOrder.get(sec.order); return n ? { ...sec, draftFields: n.fields, draftRisks: n.risks, finalFields: null, finalRisks: null, sources: n.sources } : sec; });
       cp.regen = {};
       D.qa = []; D.qaSummary = ""; cp.qaResolved = {};
     });
@@ -275,16 +351,22 @@
       cp.approved = true; cp.blockedMsg = ""; return render();
     }
     if (a === "reset") { reset(); return render(); }
+    if (a === "samplephoto") return samplePortrait();
+    if (a === "nophoto") { cp.photo = ""; return render(); }
+    if (a === "docx-draft") return downloadDocx(false);
+    if (a === "docx-final") return downloadDocx(true);
   });
   document.addEventListener("input", (e) => {
     if (e.target.matches("[data-cp-doc]")) D.sourceDocs[e.target.dataset.cpDoc].text = e.target.value;
     if (e.target.matches("[data-cp-notes]")) cp.notes = e.target.value;
+    if (e.target.matches("[data-cp-name]")) cp.name = e.target.value;
     if (e.target.matches("[data-cp-approver]")) cp.approver = e.target.value;
     if (e.target.matches("[data-cp-answer]")) cp.answers[e.target.dataset.cpAnswer] = e.target.value;
     if (e.target.matches("[data-cp-comment]")) D.qa[e.target.dataset.cpComment].comment = e.target.value;
   });
   document.addEventListener("change", (e) => {
     if (e.target.matches("[data-cp-decl]")) { cp.declaration = e.target.checked; render(); }
+    if (e.target.matches("[data-cp-photo]") && e.target.files[0]) processPhoto(e.target.files[0]);
   });
 
   window.renderCarePlanBuilder = function () {

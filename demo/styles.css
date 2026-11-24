@@ -1187,3 +1187,24 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 2px s
 .cp-srcdoc { display: grid; gap: 6px; font-size: 14px; }
 .cp-srcdoc textarea, .cp-field textarea { width: 100%; font: 13px/1.5 Inter, sans-serif; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
 .cp-field.wide { max-width: none; }
+
+/* ---------- care plan: Radis-style fields, cover, photo ---------- */
+.cp-ftable { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; }
+.cp-ftable th, .cp-ftable td { border: 1px solid #c8d7e5; padding: 8px 10px; vertical-align: top; text-align: left; line-height: 1.45; }
+.cp-ftable th { width: 34%; background: #dceaf6; color: var(--navy); font-weight: 700; }
+.cp-ftable .cp-planrow th { width: auto; }
+.cp-sig th { width: 33%; background: var(--navy); color: #fff; }
+.cp-sig td { height: 30px; }
+.cp-list { margin: 0; padding-left: 20px; line-height: 1.6; }
+.cp-risk h4 { margin: 10px 0 4px; color: var(--teal); }
+.cp-score { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.cp-person { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.cp-photo, .cp-cover-photo { width: 150px; height: 150px; border: 1px solid #c8d7e5; border-radius: 10px; background: #fff; display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 13px; }
+.cp-photo img, .cp-cover-photo img { width: 100%; height: 100%; object-fit: cover; }
+.cp-person-fields { display: grid; gap: 10px; }
+.cp-upload { display: inline-flex; align-items: center; cursor: pointer; }
+.cp-cover { display: grid; justify-items: center; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.cp-cover-title { font-size: 1.6rem; font-weight: 800; color: var(--blue); }
+.cp-cover-photo { width: 190px; height: 190px; }
+.cp-cover-name { font-size: 1.4rem; font-weight: 700; color: var(--navy); }
+@media (max-width: 600px) { .cp-person { grid-template-columns: 1fr; } .cp-ftable th { width: 42%; } }
