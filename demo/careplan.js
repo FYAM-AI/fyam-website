@@ -20,7 +20,11 @@
   reset();
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const mark = (s) => esc(s).replace(/\[(TO BE VERIFIED[^\]]*|INFORMATION REQUIRED[^\]]*)\]/g, '<mark class="cp-flag">[$1]</mark>').replace(/\n/g, "<br>");
+  // Gaps the AI could not fill are shown as a soft "To complete" note rather than an alarm.
+  const mark = (s) => esc(s)
+    .replace(/\[(TO BE VERIFIED|INFORMATION REQUIRED)\s*:?\s*([^\]]*)\]/g, (m, k, t) => `<span class="cp-flag">${k === "TO BE VERIFIED" ? "To check" : "To complete"}: ${t || "information needed"}</span>`)
+    .replace(/^Completed by the service - not processed by AI$/, '<span class="cp-svc">To be completed by the service</span>')
+    .replace(/\n/g, "<br>");
   const TPL = window.CAREPLAN_TEMPLATE || [];
   const tplOf = (order) => TPL.find((t) => t.order === order) || {};
   // The AI only ever sees the reference (e.g. SU-TEST-001); the real name is put back here, in the browser.
@@ -39,6 +43,7 @@
   const displayName = () => (cp.name || D.job.name || D.job.su);
   const openClar = () => D.clarifications.filter((_, i) => !cp.resolved[i]).length;
   const openBlocking = () => D.qa.filter((q, i) => q.severity === "Blocking" && !cp.qaResolved[i]).length;
+  const openGaps = () => D.sections.reduce((n, s) => n + (fieldsToText(rawData(s)).match(/\[(INFORMATION REQUIRED|TO BE VERIFIED)/g) || []).length, 0);
   const notReviewed = () => D.sections.filter((s) => !cp.reviewed[s.order]).length;
 
   function checks() {
@@ -270,6 +275,7 @@
         <li class="${notReviewed() ? "" : "ok"}">All 25 sections reviewed</li>
         <li class="${openBlocking() ? "" : "ok"}">No open blocking quality findings</li>
         <li class="${openClar() ? "" : "ok"}">All clarifications answered</li>
+        <li class="${openGaps() ? "warn" : "ok"}">${openGaps() ? `${openGaps()} "To complete" item(s) still open – listed on the "Still to complete" page of the draft` : 'No "To complete" items left'}</li>
         <li class="${cp.approver.trim() ? "ok" : ""}">Approver named</li>
         <li class="${cp.declaration ? "ok" : ""}">Approver declaration ticked</li>
       </ul>

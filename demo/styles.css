@@ -1050,7 +1050,9 @@ select {
 .cp-sec-btn em.ok { color: var(--green); } .cp-sec-btn em.warn { color: var(--amber); }
 .cp-sec-body { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
 .cp-text { line-height: 1.6; }
-.cp-flag { background: #fff3a0; color: var(--red); font-weight: 700; padding: 0 2px; }
+.cp-flag { display: inline-block; background: #fff6e0; color: #8a5300; font-style: italic; border-left: 3px solid #e0a030; padding: 1px 8px; border-radius: 3px; }
+.cp-svc { color: #6b7b8b; font-style: italic; }
+.cp-checks li.warn::before { content: "!"; color: #b7791f; }
 .cp-evidence { font-size: 12px; color: var(--muted); font-style: italic; margin: 0; }
 .cp-qa-box { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
 .cp-qa-box p { margin: 0; }
@@ -1189,13 +1191,13 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 2px s
 .cp-field.wide { max-width: none; }
 
 /* ---------- care plan: Radis-style fields, cover, photo ---------- */
-.cp-ftable { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; }
-.cp-ftable th, .cp-ftable td { border: 1px solid #c8d7e5; padding: 8px 10px; vertical-align: top; text-align: left; line-height: 1.45; }
-.cp-ftable th { width: 34%; background: #dceaf6; color: var(--navy); font-weight: 700; }
+.cp-ftable { width: 100%; border-collapse: collapse; font-size: 15.5px; margin: 4px 0 14px; }
+.cp-ftable th, .cp-ftable td { border: 1px solid #d3dfea; padding: 10px 12px; vertical-align: top; text-align: left; line-height: 1.55; }
+.cp-ftable th { width: 34%; background: #eef4fa; color: var(--navy); font-weight: 700; }
 .cp-ftable .cp-planrow th { width: auto; }
 .cp-sig th { width: 33%; background: var(--navy); color: #fff; }
 .cp-sig td { height: 30px; }
-.cp-list { margin: 0; padding-left: 20px; line-height: 1.6; }
+.cp-list { margin: 0; padding-left: 20px; line-height: 1.7; font-size: 15.5px; }
 .cp-risk h4 { margin: 10px 0 4px; color: var(--teal); }
 .cp-score { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
 .cp-person { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; border: 1px solid var(--line); border-radius: 12px; padding: 14px; }

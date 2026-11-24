@@ -1,47 +1,50 @@
 /* Builds the FYAM care plan as a real Word (.docx) file in the browser.
    No external libraries: writes WordprocessingML and packs it into a (stored) zip. */
 (function () {
-  const NAVY = "10243A", TEAL = "1C9A91", LABEL = "DCEAF6", RED = "B42318", MUTED = "4F5F70";
+  const NAVY = "10243A", TEAL = "137A73", LABEL = "EEF4FA", RED = "B42318", MUTED = "5B6B7B", GAP = "8A5300", GAPFILL = "FFF6E0", BORDER = "C9D6E3", BASE = 12;
   const x = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const MARK = /(\[(?:TO BE VERIFIED|INFORMATION REQUIRED)[^\]]*\])/;
 
   function run(text, o = {}) {
-    const rpr = `<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>${o.b ? "<w:b/>" : ""}${o.i ? "<w:i/>" : ""}${o.color ? `<w:color w:val="${o.color}"/>` : ""}${o.hl ? '<w:highlight w:val="yellow"/>' : ""}<w:sz w:val="${(o.size || 11) * 2}"/></w:rPr>`;
+    const rpr = `<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>${o.b ? "<w:b/>" : ""}${o.i ? "<w:i/>" : ""}${o.color ? `<w:color w:val="${o.color}"/>` : ""}<w:sz w:val="${(o.size || BASE) * 2}"/></w:rPr>`;
     return String(text).split("\n").map((line, i) => `${i ? "<w:r><w:br/></w:r>" : ""}<w:r>${rpr}<w:t xml:space="preserve">${x(line)}</w:t></w:r>`).join("");
   }
   function runsMarked(text, o = {}) {
-    return String(text ?? "").split(MARK).filter(Boolean).map((part) => MARK.test(part) && /^\[/.test(part) ? run(part, { ...o, b: true, color: RED, hl: true }) : run(part, o)).join("");
+    return String(text ?? "").split(MARK).filter(Boolean).map((part) => MARK.test(part) && /^\[/.test(part) ? run(gapText(part), { ...o, i: true, b: false, color: GAP }) : /^Completed by the service/.test(part) ? run("To be completed by the service", { ...o, i: true, color: MUTED }) : run(part, o)).join("");
   }
+  // "[INFORMATION REQUIRED: preferred name]" -> "To complete: preferred name"
+  function gapText(m) { const t = m.replace(/^\[|\]$/g, "").replace(/^(INFORMATION REQUIRED|TO BE VERIFIED)\s*:?\s*/i, ""); return (/^TO BE VERIFIED/i.test(m) ? "To check: " : "To complete: ") + (t || "information needed"); }
+  const isGap = (v) => MARK.test(String(v || "")) && !String(v).replace(MARK, "").replace(/[\s.\-]/g, "");
   function p(content, o = {}) {
-    const ppr = `<w:pPr>${o.style ? `<w:pStyle w:val="${o.style}"/>` : ""}${o.center ? '<w:jc w:val="center"/>' : ""}<w:spacing w:before="${o.before || 0}" w:after="${o.after ?? 80}"/>${o.pageBreak ? '<w:pageBreakBefore/>' : ""}</w:pPr>`;
+    const ppr = `<w:pPr>${o.keep ? "<w:keepNext/>" : ""}${o.pageBreak ? '<w:pageBreakBefore/>' : ""}${o.shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.shade}"/>` : ""}${o.ind ? `<w:ind w:left="${o.ind}" w:right="${o.ind}"/>` : ""}<w:spacing w:before="${o.before || 0}" w:after="${o.after ?? 100}" w:line="${o.line || 276}" w:lineRule="auto"/>${o.center ? '<w:jc w:val="center"/>' : ""}</w:pPr>`;
     return `<w:p>${ppr}${content}</w:p>`;
   }
   const para = (text, o = {}) => p(runsMarked(text, o), o);
   function cell(inner, o = {}) {
-    const tcpr = `<w:tcPr><w:tcW w:w="${o.w || 0}" w:type="${o.w ? "dxa" : "auto"}"/>${o.span ? `<w:gridSpan w:val="${o.span}"/>` : ""}${o.fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>` : ""}<w:tcMar><w:top w:w="70" w:type="dxa"/><w:bottom w:w="70" w:type="dxa"/></w:tcMar></w:tcPr>`;
+    const tcpr = `<w:tcPr><w:tcW w:w="${o.w || 0}" w:type="${o.w ? "dxa" : "auto"}"/>${o.span ? `<w:gridSpan w:val="${o.span}"/>` : ""}${o.fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>` : ""}<w:tcMar><w:top w:w="110" w:type="dxa"/><w:left w:w="140" w:type="dxa"/><w:bottom w:w="110" w:type="dxa"/><w:right w:w="140" w:type="dxa"/></w:tcMar>${o.gap ? `<w:tcBorders><w:left w:val="single" w:sz="24" w:color="E0A030"/></w:tcBorders>` : ""}</w:tcPr>`;
     return `<w:tc>${tcpr}${inner || p("")}</w:tc>`;
   }
   function table(rows, widths) {
     const grid = `<w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>`;
-    const b = `<w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"].map((s) => `<w:${s} w:val="single" w:sz="6" w:color="9DB4C8"/>`).join("")}</w:tblBorders>`;
-    return `<w:tbl><w:tblPr><w:tblW w:w="${widths.reduce((a, c) => a + c, 0)}" w:type="dxa"/>${b}<w:tblLayout w:type="fixed"/></w:tblPr>${grid}${rows.map((r) => `<w:tr>${r}</w:tr>`).join("")}</w:tbl>${p("", { after: 120 })}`;
+    const b = `<w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"].map((s) => `<w:${s} w:val="single" w:sz="6" w:color="${BORDER}"/>`).join("")}</w:tblBorders>`;
+    return `<w:tbl><w:tblPr><w:tblW w:w="${widths.reduce((a, c) => a + c, 0)}" w:type="dxa"/>${b}<w:tblLayout w:type="fixed"/></w:tblPr>${grid}${rows.map((r) => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${r}</w:tr>`).join("")}</w:tbl>${p("", { after: 200, line: 240 })}`;
   }
   const FULL = 9638;
-  function headerBar(sec) {
-    return table([cell(p(run(`${String(sec.order).padStart(2, "0")}   ${sec.title}`, { b: true, color: "FFFFFF", size: 14 }), { after: 0 }), { w: FULL, fill: NAVY })], [FULL]);
+  function headerBar(sec, br) {
+    return p(run(`  ${String(sec.order).padStart(2, "0")}   ${sec.title}`, { b: true, color: "FFFFFF", size: 15 }), { shade: NAVY, keep: true, pageBreak: br, before: br ? 0 : 240, after: 160, line: 360 });
   }
   function fieldRows(fields, kind) {
     if (kind === "plan") {
       return table(fields.flatMap((f) => [
-        cell(para(f.label, { b: true, color: NAVY, after: 0 }), { w: FULL, fill: LABEL }),
-        cell(para(f.value || "", { after: 0 }), { w: FULL })
+        cell(para(f.label, { b: true, color: NAVY, after: 0, keep: true }), { w: FULL, fill: LABEL }),
+        cell(para(f.value || "", { after: 0 }), { w: FULL, fill: isGap(f.value) ? GAPFILL : undefined, gap: isGap(f.value) })
       ]), [FULL]);
     }
-    return table(fields.map((f) => cell(para(f.label, { b: true, color: NAVY, after: 0 }), { w: 3300, fill: LABEL }) + cell(para(f.value || "", { after: 0 }), { w: FULL - 3300 })), [3300, FULL - 3300]);
+    return table(fields.map((f) => cell(para(f.label, { b: true, color: NAVY, after: 0 }), { w: 3300, fill: LABEL }) + cell(para(f.value || "", { after: 0 }), { w: FULL - 3300, fill: isGap(f.value) ? GAPFILL : undefined, gap: isGap(f.value) })), [3300, FULL - 3300]);
   }
   function listBlock(fields) {
     const items = (fields.find((f) => /items/i.test(f.label)) || fields[0] || { value: "" }).value.split("\n").map((s) => s.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
-    return items.map((t) => p(run("•  ", { color: TEAL, b: true }) + runsMarked(t))).join("") + p("", { after: 120 });
+    return items.map((t) => p(run("•  ", { color: TEAL, b: true }) + runsMarked(t), { after: 120, ind: 200 })).join("") + p("", { after: 160 });
   }
   function riskBlock(risks) {
     if (!risks || !risks.length) return para("[INFORMATION REQUIRED: no risks recorded]");
@@ -49,7 +52,7 @@
       const L = (t) => cell(para(t, { b: true, color: NAVY, after: 0 }), { w: 3300, fill: LABEL });
       const V = (t) => cell(para(t, { after: 0 }), { w: FULL - 3300 });
       const calc = "Likelihood ____ (1 Rare - 5 Almost certain)  x  Consequence ____ (1 Insignificant - 5 Catastrophic)  =  Score ____\nRating: Low 1-3 / Moderate 4-7 / High 8-12 / Extreme 15-25   (to be scored by the manager)";
-      return p(run(`Risk ${i + 1}: ${r.risk}`, { b: true, color: TEAL, size: 12 }), { before: 120 }) + table([
+      return p(run(`Risk ${i + 1}: ${r.risk}`, { b: true, color: TEAL, size: 13 }), { before: 160, keep: true }) + table([
         L("1. Description of activity / risk") + V(r.risk),
         L("2. Who or what is at risk?") + V(r.who_at_risk),
         L("3. Possible consequences") + V(r.consequences),
@@ -62,8 +65,8 @@
   }
   function signatureTable(roles) {
     const head = ["Date", "Name", "Signature"].map((h) => cell(para(h, { b: true, color: "FFFFFF", after: 0 }), { w: FULL / 3, fill: NAVY })).join("");
-    const rows = (roles || Array(6).fill("")).map((r) => [r ? `${r}` : "", "", ""].map((t, i) => cell(para(i === 1 ? t : "", { after: 240 }), { w: FULL / 3 })).join(""));
-    return table([head, ...rows], [FULL / 3, FULL / 3, FULL / 3]) + para("Signatures are added by hand (or an approved e-signature process). They are never generated by the system.", { i: true, color: MUTED, size: 9 });
+    const rows = (roles || Array(6).fill("")).map((r) => [r ? `${r}` : "", "", ""].map((t, i) => cell(para(i === 1 ? t : "", { after: 320 }), { w: FULL / 3 })).join(""));
+    return table([head, ...rows], [FULL / 3, FULL / 3, FULL / 3]) + para("Signatures are added by hand (or an approved e-signature process). They are never generated by the system.", { i: true, color: MUTED, size: 10 });
   }
 
   function documentXml(data, hasPhoto) {
@@ -83,14 +86,32 @@
     // ---------- contents ----------
     body += para("Contents", { b: true, color: NAVY, size: 18, pageBreak: true });
     body += para("Part A - My care plan", { b: true, color: TEAL, size: 12, before: 120 });
-    sections.filter((s) => s.order <= 15).forEach((s) => { body += para(`${String(s.order).padStart(2, "0")}   ${s.title}`, { after: 20 }); });
+    sections.filter((s) => s.order <= 15).forEach((s) => { body += para(`${String(s.order).padStart(2, "0")}   ${s.title}`, { after: 40 }); });
     body += para("Part B - Supporting assessments and records", { b: true, color: TEAL, size: 12, before: 160 });
-    sections.filter((s) => s.order > 15).forEach((s) => { body += para(`${String(s.order).padStart(2, "0")}   ${s.title}`, { after: 20 }); });
-    // ---------- sections ----------
+    sections.filter((s) => s.order > 15).forEach((s) => { body += para(`${String(s.order).padStart(2, "0")}   ${s.title}`, { after: 40 }); });
+    // ---------- still to complete (draft only) ----------
+    const gaps = [];
+    sections.filter((s) => s.order > 1).forEach((s) => {
+      (s.fields || []).forEach((f) => String(f.value || "").split(MARK).filter((m) => /^\[/.test(m) && MARK.test(m)).forEach((m) => gaps.push([s, f.label, gapText(m).replace(/^To (complete|check): /, "")])));
+      (s.risks || []).forEach((r, i) => ["risk", "who_at_risk", "consequences", "current_measures", "additional_actions"].forEach((k) => { if (MARK.test(String(r[k] || ""))) gaps.push([s, `Risk ${i + 1}`, gapText(String(r[k]).match(MARK)[1]).replace(/^To (complete|check): /, "")]); }));
+    });
+    if (!approved && gaps.length) {
+      body += para("Still to complete", { b: true, color: NAVY, size: 20, pageBreak: true, after: 60 });
+      body += para(`${gaps.length} item(s) in ${new Set(gaps.map((g) => g[0].order)).size} sections were not in the source documents, so the AI left them for you rather than guessing. Complete them at the plan meeting. They are shown in the plan as "To complete" in an amber box. The plan should not be approved until this list is clear.`, { color: MUTED, size: 11, after: 200 });
+      const bySec = new Map();
+      gaps.forEach(([sec, label, need]) => { if (!bySec.has(sec.order)) bySec.set(sec.order, { sec, needs: [] }); const n = bySec.get(sec.order).needs; if (!n.includes(need)) n.push(need); });
+      const W = [900, 3300, FULL - 4200];
+      const head = ["Done", "Section", "What is needed"].map((h, i) => cell(para(h, { b: true, color: "FFFFFF", after: 0, size: 11 }), { w: W[i], fill: NAVY })).join("");
+      body += table([head, ...[...bySec.values()].map(({ sec, needs }) => cell(para("\u2610", { size: 14, center: true, after: 0 }), { w: W[0] }) + cell(para(`${String(sec.order).padStart(2, "0")}  ${sec.title}`, { b: true, color: NAVY, after: 0, size: 11 }), { w: W[1] }) + cell(para(needs.map((n) => n.charAt(0).toUpperCase() + n.slice(1)).join("; "), { after: 0, size: 11 }), { w: W[2] }))], W);
+    }
+    // ---------- sections (flow on; new page only where a form starts) ----------
     const tpl = window.CAREPLAN_TEMPLATE || [];
+    const NEW_PAGE = new Set([2, 16, 18, 19, 22, 24]);
     sections.filter((s) => s.order > 1).forEach((s) => {
       const t = tpl.find((q) => q.order === s.order) || {};
-      body += p("", { pageBreak: true, after: 0 }) + headerBar(s);
+      if (s.order === 16) body += para("Part B - Supporting assessments and records", { b: true, color: TEAL, size: 16, pageBreak: true, keep: true, after: 120 });
+      else if (s.order === 2) body += para("Part A - My care plan", { b: true, color: TEAL, size: 16, pageBreak: true, keep: true, after: 120 });
+      body += headerBar(s, NEW_PAGE.has(s.order) && s.order !== 2 && s.order !== 16);
       const fields = s.fields || [];
       if (t.kind === "list") body += listBlock(fields);
       else if (t.kind === "risks") body += riskBlock(s.risks);
@@ -98,7 +119,7 @@
         if (fields.length) body += fieldRows(fields, "fields");
         body += s.order === 15 ? signatureTable(["Person receiving support", "Representative / advocate", "Registered / service manager", "Key worker"]) : signatureTable();
       } else body += fieldRows(fields, t.kind);
-      if (!approved && s.sources) body += para(`Evidence: ${s.sources}`, { i: true, color: MUTED, size: 9 });
+      if (!approved && s.sources) body += para(`Evidence: ${s.sources}`, { i: true, color: MUTED, size: 10, after: 200 });
     });
     const sect = `<w:sectPr><w:headerReference w:type="default" r:id="rIdHdr"/><w:footerReference w:type="default" r:id="rIdFtr"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>`;
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}${sect}</w:body></w:document>`;
