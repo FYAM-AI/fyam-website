@@ -178,9 +178,10 @@
 
   function stepper() {
     const running = (i) => (cp.busy && cp.runStep === i) || (i === 0 && reading());
+    const done = (i) => cp.approved || i < cp.stage || (cp.busy && i < cp.runStep);
     return `<ol class="cp-stepper">${STAGES.map((s, i) => `
-      <li class="${running(i) ? "running" : i < cp.stage || cp.approved ? "done" : i === cp.stage ? "current" : ""}">
-        <span>${running(i) ? '<i class="cp-ring"></i>' : i < cp.stage || cp.approved ? "✓" : i + 1}</span>${s}</li>`).join("")}</ol>`;
+      <li class="${running(i) ? "running" : done(i) ? "done" : i === cp.stage ? "current" : ""}">
+        <span>${running(i) ? '<i class="cp-ring"></i>' : done(i) ? "✓" : i + 1}</span>${s}</li>`).join("")}</ol>`;
   }
 
   function jobCard() {
