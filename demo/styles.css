@@ -1232,3 +1232,32 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 2px s
 .cp-spin { display: inline-block; width: 12px; height: 12px; border: 2px solid #c9d6e3; border-top-color: var(--teal, #1c9a91); border-radius: 50%; animation: cpspin .8s linear infinite; vertical-align: -2px; }
 @keyframes cpspin { to { transform: rotate(360deg); } }
 @media (max-width: 640px) { .cp-file { grid-template-columns: 48px 1fr; } .cp-file-side { grid-column: 1 / -1; grid-auto-flow: column; justify-content: start; } .cp-file-thumb { width: 48px; height: 60px; } }
+
+/* care plan: steps spin while working (no "AI is…" messages) */
+.cp-stepper li { transition: border-color .25s, background .25s; }
+.cp-stepper li.running { border-color: var(--teal, #1c9a91); color: var(--text); font-weight: 600; background: #f2faf9; }
+.cp-stepper li.running span { background: transparent; }
+.cp-ring { width: 20px; height: 20px; border-radius: 50%; border: 3px solid #cfe9e6; border-top-color: var(--teal, #1c9a91); animation: cp-spin .8s linear infinite; display: block; }
+.cp-stepper li.done span { animation: cp-pop .35s ease-out; }
+@keyframes cp-pop { 0% { transform: scale(.4); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@keyframes cp-spin { to { transform: rotate(360deg); } }
+.cp-layout.busy .cp-panel .primary-button { opacity: .55; pointer-events: none; }
+.cp-layout.busy .cp-panel .primary-button::after { content: " · working…"; font-weight: 500; }
+/* step 4: answers drawn from the manager's notes */
+.cp-quote { margin: 8px 0 0; padding: 8px 12px; border-left: 3px solid var(--teal, #1c9a91); background: #f2faf9; border-radius: 0; font-style: italic; color: #24463f; font-size: 14px; }
+.cp-quote span { display: block; font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--teal, #1c9a91); margin-bottom: 2px; }
+.cp-notfound { margin: 6px 0; padding: 6px 10px; background: #fff6e0; color: #8a5300; border-left: 3px solid #e0a030; font-size: 14px; }
+/* step 7: gap walk-through */
+.cp-gaps { margin: 14px 0 18px; padding: 16px; border: 1px solid #f0d9a8; background: #fffbf2; border-radius: 12px; }
+.cp-gaps-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cp-gaps-head span { color: #8a5300; font-weight: 600; font-size: 14px; }
+.cp-gap-bar { height: 6px; background: #f3e6c6; border-radius: 99px; margin: 10px 0 12px; overflow: hidden; }
+.cp-gap-bar i { display: block; height: 100%; background: var(--teal, #1c9a91); transition: width .4s; }
+.cp-gaps h4 { margin: 4px 0 10px; color: var(--navy); font-size: 17px; }
+.cp-gap { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; margin-bottom: 12px; }
+.cp-gap label { display: grid; gap: 4px; font-weight: 600; color: var(--navy); }
+.cp-gap small { font-weight: 400; color: #8a5300; font-style: italic; }
+.cp-gap input { font: inherit; padding: 9px 11px; border: 1px solid #d3dfea; border-radius: 8px; background: #fff; }
+.cp-demo-btn { margin-left: auto; color: #5b6b7b; }
+@media (max-width: 640px) { .cp-gap { grid-template-columns: 1fr; } .cp-demo-btn { margin-left: 0; } }
+.cp-panel .primary-button:disabled { opacity: .45; cursor: not-allowed; }

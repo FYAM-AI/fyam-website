@@ -43,7 +43,54 @@
   const displayName = () => (cp.name || D.job.name || D.job.su);
   const openClar = () => D.clarifications.filter((_, i) => !cp.resolved[i]).length;
   const openBlocking = () => D.qa.filter((q, i) => q.severity === "Blocking" && !cp.qaResolved[i]).length;
-  const openGaps = () => D.sections.reduce((n, s) => n + (fieldsToText(rawData(s)).match(/\[(INFORMATION REQUIRED|TO BE VERIFIED)/g) || []).length, 0);
+  // ---- gaps ("To complete" items) – the manager fills every one before approval
+  const GAPRE = /\[(INFORMATION REQUIRED|TO BE VERIFIED)\s*:?\s*([^\]]*)\]/;
+  const RISKKEYS = ["risk", "who_at_risk", "consequences", "current_measures", "additional_actions"];
+  function gapList() {
+    const out = [];
+    D.sections.forEach((s) => {
+      const d = rawData(s);
+      d.fields.forEach((f, fi) => { const m = String(f.value || "").match(GAPRE); if (m) out.push({ key: `${s.order}|f${fi}`, order: s.order, title: s.title, fi, label: f.label, need: m[2] || f.label }); });
+      (d.risks || []).forEach((r, ri) => RISKKEYS.forEach((k) => { const m = String(r[k] || "").match(GAPRE); if (m) out.push({ key: `${s.order}|r${ri}|${k}`, order: s.order, title: s.title, ri, k, label: `Risk ${ri + 1} – ${k.replace(/_/g, " ")}`, need: m[2] || k }); }));
+    });
+    return out;
+  }
+  const openGaps = () => gapList().length;
+  function fillGap(g, text) {
+    const s = D.sections.find((x) => x.order === g.order);
+    if (!(cp.regen[s.order] && s.finalFields)) { s.finalFields = JSON.parse(JSON.stringify(s.draftFields || [])); s.finalRisks = JSON.parse(JSON.stringify(s.draftRisks || [])); cp.regen[s.order] = true; }
+    const put = (v) => { const rest = String(v || "").replace(GAPRE, "").replace(/[\s.\-–]/g, ""); return rest ? String(v).replace(GAPRE, text) : text; };
+    if (g.k) s.finalRisks[g.ri][g.k] = put(s.finalRisks[g.ri][g.k]); else s.finalFields[g.fi].value = put(s.finalFields[g.fi].value);
+  }
+  function demoAnswer(g) {
+    const l = (g.label + " " + g.need).toLowerCase(); const r = new Date(); r.setMonth(r.getMonth() + 6);
+    const map = [[/likes to be called|preferred name/, "Grace"], [/religion|faith|belief/, "No religious or cultural needs stated by Grace"], [/relationship status/, "Single"],
+      [/protected characteristic/, "Disability (learning disability)"], [/keyworker/, "Sam, Senior Support Worker (demo)"], [/funded|1:1 hours|support hours/, "24-hour shared support, funded by the local authority (demo)"],
+      [/cross-referenc|other documents/, "Risk assessment (S18); PEEP (S19); MAR chart"], [/review frequency/, "Every 6 months, or sooner if needs change"],
+      [/next review date|review date/, r.toLocaleDateString("en-GB")], [/night routine/, "Goes to bed around 10pm. Sensor mat on. Staff check at midnight (demo)"],
+      [/reading and writing/, "Reads simple words with pictures; writes her name (demo)"], [/all about me/, "Grace is 34, kind and funny, loves 80s pop and swimming (demo)"]];
+    const hit = map.find(([re]) => re.test(l));
+    return hit ? hit[1] : "Agreed with Grace and her sister at the plan meeting (demo)";
+  }
+  function gapPanel() {
+    const gaps = gapList(); if (!gaps.length) return "";
+    const secs = [...new Set(gaps.map((g) => g.order))];
+    if (!secs.includes(cp.gapSec)) cp.gapSec = secs[0];
+    cp.gapTotal = Math.max(cp.gapTotal || 0, gaps.length);
+    const here = gaps.filter((g) => g.order === cp.gapSec);
+    const pct = Math.round(((cp.gapTotal - gaps.length) / cp.gapTotal) * 100);
+    return `<div class="cp-gaps">
+      <div class="cp-gaps-head"><strong>Complete the gaps before approval</strong><span>${gaps.length} left · section ${secs.indexOf(cp.gapSec) + 1} of ${secs.length}</span></div>
+      <div class="cp-gap-bar"><i style="width:${pct}%"></i></div>
+      <h4>${esc(here[0].title)}</h4>
+      ${here.map((g) => `<div class="cp-gap"><label>${esc(g.label)}<small>Needed: ${esc(g.need)}</small>
+        <input data-cp-gap="${esc(g.key)}" placeholder="Type the answer"></label>
+        <button class="ghost-button small" data-cp-gapna="${esc(g.key)}">Not applicable</button></div>`).join("")}
+      <div class="cp-row"><button class="primary-button" data-cp="gapsave">Save and next section</button>
+        ${secs.length > 1 ? '<button class="ghost-button" data-cp="gapskip">Skip for now</button>' : ""}
+        <button class="ghost-button small cp-demo-btn" data-cp="gapdemo">Demo shortcut: fill every gap with sample answers</button></div>
+    </div>`;
+  }
   const notReviewed = () => D.sections.filter((s) => !cp.reviewed[s.order]).length;
 
   function checks() {
@@ -52,13 +99,15 @@
     if (notReviewed()) out.push(`${notReviewed()} section(s) not marked Reviewed`);
     if (openBlocking()) out.push(`${openBlocking()} blocking QA finding(s) open`);
     if (openClar()) out.push(`${openClar()} clarification(s) open`);
+    if (openGaps()) out.push(`${openGaps()} "To complete" item(s) still to fill in`);
     if (!cp.approver.trim()) out.push("no approver named");
     if (!cp.declaration) out.push("approver declaration not ticked");
     return out;
   }
 
-  function work(label, fn, liveFn) {
-    cp.busy = label; cp.error = ""; render();
+  // step = index of the stepper tile that spins while this runs
+  function work(step, fn, liveFn) {
+    cp.busy = true; cp.runStep = step; cp.error = ""; render();
     if (liveFn && live()) {
       liveFn().then(() => { cp.liveRun = true; fn(); })
         .catch((e) => { cp.error = "Live AI unavailable (" + e.message + ") – showing the recorded result instead."; fn(); })
@@ -128,9 +177,10 @@
   }
 
   function stepper() {
+    const running = (i) => (cp.busy && cp.runStep === i) || (i === 0 && reading());
     return `<ol class="cp-stepper">${STAGES.map((s, i) => `
-      <li class="${i < cp.stage || cp.approved ? "done" : i === cp.stage ? "current" : ""}">
-        <span>${i < cp.stage || cp.approved ? "✓" : i + 1}</span>${s}</li>`).join("")}</ol>`;
+      <li class="${running(i) ? "running" : i < cp.stage || cp.approved ? "done" : i === cp.stage ? "current" : ""}">
+        <span>${running(i) ? '<i class="cp-ring"></i>' : i < cp.stage || cp.approved ? "✓" : i + 1}</span>${s}</li>`).join("")}</ol>`;
   }
 
   function jobCard() {
@@ -142,8 +192,7 @@
   }
 
   function busyBox() {
-    return (cp.busy ? `<div class="cp-busy"><span class="cp-spinner"></span>${esc(cp.busy)}</div>` : "")
-      + (cp.error ? `<div class="cp-qa warn"><p>${esc(cp.error)}</p></div>` : "");
+    return (cp.error ? `<div class="cp-qa warn"><p>${esc(cp.error)}</p></div>` : "");
   }
 
   // ---- stage views ----
@@ -184,7 +233,7 @@
     const kinds = ["all", "Needs verification", "Recommendation", "Opinion", "Unclear"];
     const list = D.facts.filter((f) => cp.factFilter === "all" || f.verification === cp.factFilter || f.kind === cp.factFilter);
     return `<div class="panel cp-panel">
-      <span class="label">Step 2 · AI 1 extraction</span>
+      <span class="label">Step 2 · Extract</span>
       <h3>${D.facts.length} facts extracted from ${D.docs.length} documents</h3>
       <div class="cp-docs">${D.docs.map((d) => `<div class="cp-doc small"><div class="cp-doc-icon ok">✓</div><div><strong>${esc(d.name)}</strong>
         <p class="cp-muted">Classified: ${esc(d.type)} · ${d.facts} facts</p></div></div>`).join("")}</div>
@@ -200,7 +249,7 @@
 
   function vClarify() {
     return `<div class="panel cp-panel">
-      <span class="label">Step 3 · AI 2 analysis · manager clarifications</span>
+      <span class="label">Step 3 · Clarify</span>
       <h3>${D.clarifications.length} questions for the manager · ${openClar()} open</h3>
       <p class="cp-summary">${esc(D.analysis)}</p>
       <div class="cp-clar-list">${D.clarifications.map((c, i) => `
@@ -210,14 +259,17 @@
             ${c.safety ? '<span class="cp-pill bad">Safety-critical</span>' : ""}
             <span class="cp-muted">${esc(c.section)} · ${esc(c.sources)}</span></div>
           <p>${esc(c.q)}</p>
-          ${cp.resolved[i] ? `<div class="cp-answer"><strong>Manager answer:</strong> ${esc(cp.answers[i])}</div>` : `
-          <textarea data-cp-answer="${i}" rows="2" placeholder="Manager answer">${esc(cp.answers[i] ?? c.answer ?? "")}</textarea>
-          <button class="ghost-button small" data-cp-resolve="${i}">Save answer and resolve</button>`}
+          ${cp.resolved[i] ? `<div class="cp-answer"><strong>Manager answer:</strong> ${esc(cp.answers[i])}
+            ${c.quote ? `<blockquote class="cp-quote"><span>From the manager's handwritten notes</span>“${esc(c.quote)}”</blockquote>` : ""}</div>` : `
+          ${c.notFound ? '<p class="cp-notfound">Not covered in the manager\'s notes – answer it here, or leave it for the plan meeting.</p>' : ""}
+          <textarea data-cp-answer="${i}" rows="2" placeholder="Manager answer">${esc(cp.answers[i] ?? (cp.liveRun ? "" : c.answer) ?? "")}</textarea>
+          <div class="cp-row"><button class="ghost-button small" data-cp-resolve="${i}">Save answer and resolve</button>
+          <button class="ghost-button small" data-cp-leave="${i}">Leave for the plan meeting</button></div>`}
         </div>`).join("")}</div>
       ${busyBox()}
       ${cp.liveRun ? `<label class="cp-field wide">What the manager knows (used to answer the questions above)<textarea data-cp-notes rows="5">${esc(cp.notes)}</textarea></label>` : ""}
       <div class="cp-row">
-        <button class="ghost-button" data-cp="resolveall" ${openClar() ? "" : "disabled"}>${cp.liveRun ? "Answer all from the manager's notes" : "Resolve all with the suggested answers"}</button>
+        <button class="ghost-button" data-cp="resolveall" ${openClar() && !cp.busy ? "" : "disabled"}>${cp.liveRun ? "Answer all from the manager's notes" : "Resolve all with the suggested answers"}</button>
         <button class="primary-button" data-cp="draft" ${openClar() || cp.busy ? "disabled" : ""}>Generate the 25-section care plan</button>
       </div>
       ${openClar() ? '<p class="cp-muted">Drafting is locked until every question is answered. The AI never guesses to resolve a conflict.</p>' : ""}
@@ -315,7 +367,7 @@
         ${cp.qaResolved[i] ? '<span class="cp-pill ok">Resolved</span>' : `<button class="ghost-button small" data-cp-sel="${q.regen}">Open section</button>`}
       </div>`).join("");
     return `<div class="panel cp-panel">
-      <span class="label">Step ${cp.stage === 4 ? "4 · AI 3 draft" : "5–6 · AI 4 quality check and manager review"}</span>
+      <span class="label">Step ${cp.stage === 4 ? "4 · Draft" : "5–6 · Quality check and review"}</span>
       <h3>Draft care plan · 25 sections</h3>
       ${cp.stage >= 5 ? `<div class="cp-qa-box"><strong>Quality and safety check</strong><p>${esc(D.qaSummary)}</p>${qaList}</div>` : ""}
       ${sectionViewer(cp.stage >= 5)}
@@ -333,23 +385,24 @@
     const draftFile = "./assets/FYAM_Care_Plan_SU-TEST-001_DRAFT.docx";
     const finalFile = "./assets/FYAM_Care_Plan_SU-TEST-001_APPROVED.docx";
     return `<div class="panel cp-panel">
-      <span class="label">Step 7 · Manager approval gate</span>
+      <span class="label">Step 7 · Approve</span>
       <h3>${cp.approved ? "Care plan approved" : "Approve the care plan"}</h3>
       <ul class="cp-checks">
         <li class="${notReviewed() ? "" : "ok"}">All 25 sections reviewed</li>
         <li class="${openBlocking() ? "" : "ok"}">No open blocking quality findings</li>
         <li class="${openClar() ? "" : "ok"}">All clarifications answered</li>
-        <li class="${openGaps() ? "warn" : "ok"}">${openGaps() ? `${openGaps()} "To complete" item(s) still open – listed on the "Still to complete" page of the draft` : 'No "To complete" items left'}</li>
+        <li class="${openGaps() ? "" : "ok"}">${openGaps() ? `${openGaps()} "To complete" item(s) still to fill in – complete them below` : 'Every "To complete" item filled in'}</li>
         <li class="${cp.approver.trim() ? "ok" : ""}">Approver named</li>
         <li class="${cp.declaration ? "ok" : ""}">Approver declaration ticked</li>
       </ul>
       ${cp.approved ? `<p class="cp-summary">Approved by ${esc(cp.approver)} on ${new Date().toLocaleDateString("en-GB")}. Logged to the audit trail. Signatures are added by hand – never generated.</p>
         <div class="cp-row"><button class="primary-button" data-cp="docx-final">Download approved Word care plan</button>
         <button class="ghost-button" data-cp="back">Back to sections</button></div>` : `
+      ${gapPanel()}
       <label class="cp-field">Approver (registered / service manager)<input data-cp-approver value="${esc(cp.approver)}" placeholder="Name"></label>
       <label class="cp-check"><input type="checkbox" data-cp-decl ${cp.declaration ? "checked" : ""}> I have reviewed this plan against the source documents and confirm it is accurate and appropriate. I understand the AI drafted it and I am responsible for its content.</label>
-      ${cp.blockedMsg ? `<div class="cp-qa bad"><strong>Approval blocked</strong><p>${esc(cp.blockedMsg)}</p></div>` : ""}
-      <div class="cp-row"><button class="primary-button" data-cp="approve">Approve care plan</button>
+      ${c.length ? `<p class="cp-muted">Approval unlocks when: ${esc(c.join("; "))}.</p>` : ""}
+      <div class="cp-row"><button class="primary-button" data-cp="approve" ${c.length ? "disabled" : ""}>Approve care plan</button>
         <button class="ghost-button" data-cp="docx-draft">Download draft (watermarked)</button>
         <button class="ghost-button" data-cp="back">Back to sections</button></div>`}
     </div>`;
@@ -357,7 +410,7 @@
 
   function render() {
     const el = document.querySelector("#workflow-layout");
-    el.className = "cp-layout";
+    el.className = "cp-layout" + (cp.busy || reading() ? " busy" : "");
     let body;
     if (cp.stage === 0) body = vUpload();
     else if (cp.stage === 1) body = vExtract();
@@ -371,7 +424,7 @@
 
   // ---- events ----
   document.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-cp],[data-cp-filter],[data-cp-resolve],[data-cp-sel],[data-cp-review],[data-cp-regen],[data-cp-rmfile]");
+    const b = e.target.closest("[data-cp],[data-cp-filter],[data-cp-resolve],[data-cp-sel],[data-cp-review],[data-cp-regen],[data-cp-rmfile],[data-cp-leave],[data-cp-gapna]");
     if (!b || !document.querySelector(".cp-layout")) return;
     if (b.dataset.cpRmfile !== undefined) { cp.files.splice(+b.dataset.cpRmfile, 1); syncDocs(); return render(); }
     const a = b.dataset.cp;
@@ -382,11 +435,13 @@
       if (!openClar()) cp.stage = 3; return render();
     }
     if (b.dataset.cpSel) { cp.sel = +b.dataset.cpSel; if (cp.stage === 6 && !cp.approved) cp.stage = 5; return render(); }
+    if (b.dataset.cpGapna !== undefined) { const g = gapList().find((x) => x.key === b.dataset.cpGapna); if (g) fillGap(g, "Not applicable (confirmed by the manager)"); return render(); }
+    if (b.dataset.cpLeave !== undefined) { const i = +b.dataset.cpLeave; cp.answers[i] = "To be confirmed with the person and family at the plan meeting."; cp.resolved[i] = true; if (!openClar()) cp.stage = Math.max(cp.stage, 3); return render(); }
     if (b.dataset.cpReview) { const o = +b.dataset.cpReview; cp.reviewed[o] = !cp.reviewed[o]; return render(); }
     if (b.dataset.cpRegen) {
       const i = +b.dataset.cpRegen; const q = D.qa[i];
       const sec = D.sections.find((x) => x.order === q.regen);
-      return work("AI is redrafting the section using your comment…", () => {
+      return work(5, () => {
         cp.regen[q.regen] = true; if (!cp.liveRun && q.regen === 12) cp.regen[20] = true;
         cp.qaResolved[i] = true; cp.reviewed[q.regen] = false;
       }, sec ? async () => {
@@ -394,7 +449,7 @@
         sec.finalFields = o.fields; sec.finalRisks = o.risks;
       } : null);
     }
-    if (a === "extract") return work("AI 1 is reading and classifying the documents…", () => {
+    if (a === "extract") return work(1, () => {
       cp.stage = 1;
       if (cp.files.length && !cp.liveRun) D.docs = D.sourceDocs.map((d, i) => ({ name: d.name, pages: (d.text.match(/\[Page/g) || [1]).length, type: (ORIGINAL.docs[i] || {}).type || "Classified", facts: (ORIGINAL.docs[i] || {}).facts || 0 }));
     }, async () => {
@@ -403,30 +458,47 @@
       D.facts = o.facts;
       D.docs = D.sourceDocs.map((d) => ({ name: d.name, pages: (d.text.match(/\[Page/g) || [1]).length, type: (o.documents.find((x) => x.name === d.name) || {}).type || "Classified", facts: o.facts.filter((f) => f.source.includes(d.name.replace("TEST ", ""))).length }));
     });
-    if (a === "analyse") return work("AI 2 is cross-checking facts for gaps and conflicts…", () => { cp.stage = 2; }, async () => {
+    if (a === "analyse") return work(2, () => { cp.stage = 2; }, async () => {
       const o = await api("careplan_analyse", { facts: factLines() });
       D.analysis = o.analysis_summary;
       D.clarifications = o.clarifications.map((c) => ({ ...c, answer: "" }));
       cp.answers = {}; cp.resolved = {};
     });
-    if (a === "resolveall") {
-      D.clarifications.forEach((c, i) => { if (!cp.resolved[i]) { cp.answers[i] = cp.answers[i] || c.answer || "See manager notes."; cp.resolved[i] = true; } });
-      cp.stage = 3; return render();
-    }
-    if (a === "draft") return work("AI 3 is drafting all 25 sections from the evidence – about 30 seconds…", () => { cp.stage = 4; cp.sel = 5; }, async () => {
+    if (a === "resolveall") return work(2, () => {
+      D.clarifications.forEach((c, i) => { if (!cp.resolved[i] && c.answer) { cp.answers[i] = c.answer; cp.resolved[i] = true; } });
+      if (!openClar()) cp.stage = 3;
+    }, cp.liveRun ? async () => {
+      const open = D.clarifications.map((c, i) => ({ c, i })).filter((x) => !cp.resolved[x.i]);
+      if (!cp.notes.trim()) { open.forEach((x) => { x.c.notFound = true; }); return; }
+      const o = await api("careplan_answer", { questions: open.map((x, k) => `${k + 1}. ${x.c.q}`).join("\n"), notes: cp.notes });
+      open.forEach((x, k) => {
+        const r = (o.answers || []).find((y) => Math.round(y.n) === k + 1);
+        if (r && r.found && r.answer.trim()) { x.c.answer = r.answer.trim(); x.c.quote = (r.quote || "").trim(); x.c.notFound = false; }
+        else { x.c.answer = ""; x.c.notFound = true; }
+      });
+    } : null);
+    if (a === "draft") return work(3, () => { cp.stage = 4; cp.sel = 5; }, async () => {
       const o = await api("careplan_draft", { facts: factLines(), answers: answerLines(), reference: D.job.su, template: window.CAREPLAN_TEMPLATE_TEXT });
       const byOrder = new Map(o.sections.map((x) => [Math.round(x.order), x]));
       D.sections = D.sections.map((sec) => { const n = byOrder.get(sec.order); return n ? { ...sec, draftFields: n.fields, draftRisks: n.risks, finalFields: null, finalRisks: null, sources: n.sources } : sec; });
       cp.regen = {};
       D.qa = []; D.qaSummary = ""; cp.qaResolved = {};
     });
-    if (a === "qa") return work("AI 4 is checking the draft for safety and quality…", () => { cp.stage = 5; }, async () => {
+    if (a === "qa") return work(4, () => { cp.stage = 5; }, async () => {
       const draft = D.sections.map((x) => `## ${x.title}\n${sectionText(x)}`).join("\n\n");
       const o = await api("careplan_qa", { facts: factLines(), answers: answerLines(), draft });
       D.qaSummary = o.qa_summary;
       D.qa = o.findings.map((f) => ({ ...f, regen: Math.round(f.regen) || 1, comment: f.action }));
       cp.qaResolved = {};
     });
+    if (a === "gapsave" || a === "gapskip") {
+      const cur = cp.gapSec;
+      if (a === "gapsave") document.querySelectorAll("[data-cp-gap]").forEach((inp) => { const v = inp.value.trim(); const g = gapList().find((x) => x.key === inp.dataset.cpGap); if (v && g) fillGap(g, v); });
+      const secs = [...new Set(gapList().map((g) => g.order))];
+      cp.gapSec = secs.find((o) => o > cur) ?? secs[0];
+      render(); document.querySelector(".cp-gaps")?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
+    }
+    if (a === "gapdemo") { gapList().forEach((g) => fillGap(g, demoAnswer(g))); return render(); }
     if (a === "reviewall") { D.sections.forEach((s) => { cp.reviewed[s.order] = true; }); return render(); }
     if (a === "toapprove") { cp.stage = 6; cp.blockedMsg = ""; return render(); }
     if (a === "back") { cp.stage = 5; return render(); }
