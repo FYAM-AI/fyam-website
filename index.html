@@ -143,25 +143,10 @@
                 radial-gradient(ellipse at 80% 10%, #234d68 0, transparent 40%),
                 linear-gradient(120deg, #0e2238, #173a56);
             color: #fff;
-            padding: 120px 0 112px;
+            padding: 88px 0 0;
             text-align: center;
             overflow: hidden;
-            position: relative;
         }
-        .hero > .wrap { position: relative; z-index: 2; }
-        /* faint product loop behind the headline */
-        .hero-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-        .hero-bg video { width: 100%; height: 100%; object-fit: cover; opacity: .34; filter: blur(1.2px) saturate(.9); transform: scale(1.05); }
-        .hero-bg::after { content: ""; position: absolute; inset: 0;
-            background: radial-gradient(ellipse 52% 58% at 50% 46%, rgba(14,34,56,.9) 0, rgba(14,34,56,.68) 62%, rgba(14,34,56,.42) 100%), linear-gradient(180deg, rgba(14,34,56,.25), rgba(14,34,56,.55)); }
-        .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-        .btn.ghost { background: transparent; border: 1.5px solid rgba(255,255,255,.55); color: #fff; cursor: pointer; font: inherit; font-weight: 700; }
-        .btn.ghost:hover { background: rgba(255,255,255,.08); }
-        .play { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: var(--navy); font-size: 10px; margin-right: 8px; vertical-align: -5px; }
-        .video-modal { border: 0; padding: 0; background: transparent; width: min(1100px, 94vw); max-width: none; }
-        .video-modal::backdrop { background: rgba(8,20,33,.82); }
-        .video-modal video { display: block; width: 100%; border-radius: 12px; background: #10243a; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
-        .video-modal .close { position: absolute; top: -44px; right: 0; background: none; border: 0; color: #fff; font: 600 15px Inter, sans-serif; cursor: pointer; }
 
         .hero h1 {
             font-size: clamp(40px, 5.5vw, 64px);
@@ -318,30 +303,6 @@
             .footer-row { align-items: flex-start; flex-direction: column; }
             .footer-links { flex-wrap: wrap; }
         }
-
-        /* ---------- Hero as an inset video card (ambient product loop) ---------- */
-        .topbar { height: auto; padding: 10px 12px; background: transparent; border-bottom: 0; backdrop-filter: none; }
-        .topbar .wrap { width: min(1240px, 100%); height: 60px; padding: 0 10px 0 20px; background: rgba(255,255,255,.94);
-            backdrop-filter: blur(10px); border: 1px solid #dce5ed; border-radius: 999px; box-shadow: 0 6px 24px rgba(16,36,58,.06); }
-        .hero { margin: 0 12px; border-radius: 22px; min-height: calc(100vh - 92px); min-height: calc(100svh - 92px);
-            display: flex; flex-direction: column; padding: 70px 0 0; }
-        .hero > .wrap { margin: auto; }
-        .hero-bg video { opacity: 1; filter: blur(2.2px) saturate(1.05); transform: scale(1.06); }
-        .hero-bg::after { background:
-            radial-gradient(ellipse 58% 52% at 50% 46%, rgba(12,30,49,.6) 0, rgba(12,30,49,0) 78%),
-            linear-gradient(180deg, rgba(12,30,49,.7) 0, rgba(12,30,49,.62) 50%, rgba(12,30,49,.85) 100%); }
-        .hero h1 .accent { color: #6fd3c8; }
-        .hero p { color: #e3ecf2; }
-        .hero-strip { position: relative; z-index: 2; display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
-            gap: 14px 26px; padding: 28px 20px 30px; color: #eef4f8; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
-        .hero-strip i { width: 7px; height: 7px; border-radius: 50%; background: #6fd3c8; display: inline-block; }
-        @media (max-width: 700px) {
-            .topbar { padding: 8px; }
-            .topbar .wrap { height: 54px; padding: 0 6px 0 14px; }
-            .hero { margin: 0 8px; border-radius: 18px; min-height: calc(100svh - 80px); padding-top: 48px; }
-            .hero-strip { font-size: 13.5px; gap: 6px 14px; padding: 20px 12px 22px; }
-            .hero-strip i { display: none; }
-        }
     </style>
 </head>
 
@@ -368,13 +329,10 @@
 
         <!-- HERO -->
         <section class="hero" id="home">
-            <div class="hero-bg" aria-hidden="true">
-                <video muted loop playsinline preload="none" poster="assets/hero-bg-poster.jpg" data-src="assets/hero-bg.mp4"></video>
-            </div>
             <div class="wrap">
                 <div class="eyebrow">Intelligent tools for care providers</div>
 
-                <h1>More time for care.<br> <span class="accent">Less time on paperwork.</span></h1>
+                <h1>More time for care.<br> Less time on paperwork.</h1>
 
                 <p>
                     Smart Summarise turns referral packs, incident notes and even
@@ -383,14 +341,21 @@
                     Built by a registered manager and an AI engineer.
                 </p>
 
-                <div class="hero-actions">
-                    <a class="btn" href="https://calendly.com/fyamintisar/30min" target="_blank" rel="noopener noreferrer">Book a Product Demo →</a>
-                    <button class="btn ghost" type="button" data-open-video><span class="play">▶</span>Watch the 2-minute demo</button>
+                <a class="btn" href="https://calendly.com/fyamintisar/30min" target="_blank" rel="noopener noreferrer">
+                    Book a Product Demo →
+                </a>
+
+                <div class="hero-note">
+                    For supported living, home care and residential care homes.
                 </div>
 
-            </div>
-            <div class="hero-strip" aria-label="Who it is for">
-                <span>Supported living</span><i></i><span>Home care</span><i></i><span>Residential care</span><i></i><span>Built with a registered manager</span>
+                <div class="hero-shot">
+                    <div class="frame">
+                        <div class="frame-bar"><i></i><i></i><i></i><span>Smart Summarise · Overview</span></div>
+                        <img src="assets/dashboard.jpg?v=2" width="1800" height="875"
+                             alt="Smart Summarise overview: what needs the manager's attention today across care plans, incidents, onboarding and compliance">
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -625,11 +590,6 @@
 
     </main>
 
-    <dialog class="video-modal" id="demo-video" aria-label="Smart Summarise care plan builder demo video">
-        <button class="close" type="button" data-close-video>Close ✕</button>
-        <video controls playsinline preload="none" poster="assets/careplan-demo-poster.jpg" src="assets/careplan-demo.mp4"></video>
-    </dialog>
-
     <footer class="footer">
         <div class="wrap footer-row">
             <div>
@@ -656,23 +616,6 @@
 
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
-        // Background loop: only on larger screens and when motion is welcome (phones keep the still image).
-        (function () {
-            const v = document.querySelector('.hero-bg video');
-            const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const saveData = navigator.connection && navigator.connection.saveData;
-            if (v && !calm && !saveData) { v.src = v.dataset.src; v.play().catch(function () {}); }
-        })();
-        // Captioned walkthrough in a pop-up player.
-        (function () {
-            const d = document.getElementById('demo-video'); if (!d) return;
-            const v = d.querySelector('video');
-            document.querySelectorAll('[data-open-video]').forEach(function (b) { b.addEventListener('click', function () { d.showModal(); v.play().catch(function () {}); }); });
-            const close = function () { v.pause(); d.close(); };
-            d.querySelector('[data-close-video]').addEventListener('click', close);
-            d.addEventListener('click', function (e) { if (e.target === d) close(); });
-            d.addEventListener('close', function () { v.pause(); });
-        })();
     </script>
 
 </body>
