@@ -227,6 +227,11 @@
         .ticks svg { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 3px; color: #73c9c0; }
         .product-band .frame { border-color: #2d4a63; box-shadow: 0 25px 70px rgba(0,0,0,.35); }
         .caption { font-size: 12px; color: #9fb3c3; margin-top: 12px; text-align: center; }
+        .cp-band .product-grid { grid-template-columns: 1.2fr .8fr; }
+        .cp-band p { color: var(--muted); font-size: 16px; }
+        .cp-band .ticks li { color: var(--ink, #1d2b38); }
+        .cp-band .ticks svg { color: var(--teal, #1c9a91); }
+        .cp-band .caption { color: var(--muted); }
 
         /* ---------- Platform ---------- */
         .platform { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
@@ -262,7 +267,8 @@
 
         /* ---------- Responsive ---------- */
         @media (max-width: 900px) {
-            .product-grid, .platform { grid-template-columns: 1fr; }
+            .product-grid, .platform, .cp-band .product-grid { grid-template-columns: 1fr; }
+            .cp-band .product-grid > div:first-child { order: 2; }
             .cards { grid-template-columns: 1fr 1fr; }
             .steps { grid-template-columns: 1fr 1fr; }
             .nav { gap: 15px; }
@@ -296,6 +302,7 @@
 
             <nav class="nav">
                 <a href="#product">Smart Summarise</a>
+                <a href="#care-plans">Care plans</a>
                 <a href="#platform">Platform</a>
                 <a href="#how">How it works</a>
                 <a class="btn" href="https://calendly.com/fyamintisar/30min" target="_blank" rel="noopener noreferrer">Book a demo</a>
@@ -399,11 +406,43 @@
 
                 <div>
                     <div class="frame">
-                        <div class="frame-bar"><i></i><i></i><i></i><span>Incident report · Manager review</span></div>
-                        <img src="assets/incident-review.jpg?v=2" width="1800" height="1481" loading="lazy"
-                             alt="Smart Summarise incident form beside AI-suggested actions, manager approval buttons and a follow-up tracker">
+                        <div class="frame-bar"><i></i><i></i><i></i><span>Incidents · Manager overview</span></div>
+                        <img src="assets/incidents-overview.jpg" width="1800" height="573" loading="lazy"
+                             alt="Smart Summarise incident overview: each incident with its service, date and risk level, and the selected record's summary">
                     </div>
                     <div class="caption">Example record with fictional details.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CARE PLAN BUILDER -->
+        <section class="section soft cp-band" id="care-plans">
+            <div class="wrap product-grid">
+                <div>
+                    <div class="frame">
+                        <div class="frame-bar"><i></i><i></i><i></i><span>AI Care Plan Builder · Manager review</span></div>
+                        <img src="assets/careplan-builder.jpg" width="1800" height="1473" loading="lazy"
+                             alt="AI Care Plan Builder: seven steps from upload to approval, the 25 care plan sections, and the Medication Support section drafted from the evidence">
+                    </div>
+                    <div class="caption">Example care plan with fictional details.</div>
+                </div>
+
+                <div>
+                    <div class="kicker">New · AI Care Plan Builder</div>
+                    <h2>From referral pack to a full care plan draft.</h2>
+                    <p>
+                        Upload the referral, the discharge letter and your own handwritten
+                        assessment notes. Smart Summarise reads them, flags anything that
+                        doesn't add up, and drafts all 25 sections, ready for you to check.
+                    </p>
+
+                    <ul class="ticks">
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Reads PDFs, Word files and photos of handwritten notes</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Spots conflicts, like an allergy missing from a discharge letter, and asks you instead of guessing</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Nothing is approved until the manager has filled every gap and signed it off</li>
+                    </ul>
+
+                    <a class="btn" href="https://calendly.com/fyamintisar/30min" target="_blank" rel="noopener noreferrer">See it in a demo →</a>
                 </div>
             </div>
         </section>
