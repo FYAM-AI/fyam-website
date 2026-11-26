@@ -123,7 +123,7 @@
     { file: "samples/01_Local_authority_referral.pdf", rec: () => ORIGINAL.sourceDocs[0].text, pages: 2 },
     { file: "samples/02_Hospital_discharge_letter.pdf", rec: () => ORIGINAL.sourceDocs[1].text, pages: 1 },
     { file: "samples/03_Family_information_sheet_HANDWRITTEN.jpg", rec: () => ORIGINAL.sourceDocs[2].text, pages: 1, handwritten: true },
-    { file: "samples/04_Manager_initial_assessment_notes_HANDWRITTEN.jpg", rec: () => ORIGINAL.managerNotes, pages: 1, handwritten: true, role: "notes" }
+    { file: "samples/04_Manager_initial_assessment_notes_HANDWRITTEN.jpg", rec: () => ORIGINAL.handwrittenNotes || ORIGINAL.managerNotes, pages: 1, handwritten: true, role: "notes" }
   ];
   const baseName = (n) => n.replace(/\.[a-z0-9]+$/i, "").replace(/_/g, " ").replace(/^\d+\s+/, "").replace(/\s+HANDWRITTEN$/i, "").trim();
   const guessRole = (n) => (/(manager|visit|assessment).*note|notes?\b/i.test(n) ? "notes" : "source");
@@ -142,7 +142,7 @@
       const ai = live() ? (images, name) => api("read_document", { images, name }) : null;
       const useRecorded = (why) => Object.assign(f, { status: "done", text: sm.rec(), pages: sm.pages, handwritten: !!sm.handwritten, how: why });
       const p = sm && !live()
-        ? new Promise((r) => setTimeout(r, 700 + i * 500)).then(() => { useRecorded(sm.handwritten ? "Handwriting read (offline demo – recorded result)" : "Read (offline demo – recorded result)"); return window.CPUpload.kindOf(file) === "Photo" ? window.CPUpload.read(file, null).catch((e) => { f.thumb = e.thumb || ""; }) : null; })
+        ? new Promise((r) => setTimeout(r, 700 + i * 500)).then(() => { useRecorded(sm.handwritten ? "Handwriting read by AI · saved result" : "Text read from PDF · saved result"); return window.CPUpload.kindOf(file) === "Photo" ? window.CPUpload.read(file, null).catch((e) => { f.thumb = e.thumb || ""; }) : null; })
         : window.CPUpload.read(file, ai).then((o) => Object.assign(f, o, { status: "done" }));
       p.catch((e) => { if (e.thumb) f.thumb = e.thumb; if (sm) useRecorded("Recorded result used (" + e.message + ")"); else Object.assign(f, { status: "error", how: e.message }); })
         .finally(() => { syncDocs(); render(); });
@@ -261,9 +261,9 @@
             <span class="cp-muted">${esc(c.section)} · ${esc(c.sources)}</span></div>
           <p>${esc(c.q)}</p>
           ${cp.resolved[i] ? `<div class="cp-answer"><strong>Manager answer:</strong> ${esc(cp.answers[i])}
-            ${c.quote ? `<blockquote class="cp-quote"><span>From the manager's handwritten notes</span>“${esc(c.quote)}”</blockquote>` : ""}</div>` : `
+            ${c.quote && (cp.liveRun || cp.files.some((f) => f.role === "notes")) ? `<blockquote class="cp-quote"><span>From the manager's ${cp.files.some((f) => f.role === "notes" && f.handwritten) ? "handwritten " : ""}notes</span>“${esc(c.quote)}”</blockquote>` : ""}</div>` : `
           ${c.notFound ? '<p class="cp-notfound">Not covered in the manager\'s notes – answer it here, or leave it for the plan meeting.</p>' : ""}
-          <textarea data-cp-answer="${i}" rows="2" placeholder="Manager answer">${esc(cp.answers[i] ?? (cp.liveRun ? "" : c.answer) ?? "")}</textarea>
+          <textarea data-cp-answer="${i}" rows="2" placeholder="Manager answer">${esc(cp.answers[i] ?? "")}</textarea>
           <div class="cp-row"><button class="ghost-button small" data-cp-resolve="${i}">Save answer and resolve</button>
           <button class="ghost-button small" data-cp-leave="${i}">Leave for the plan meeting</button></div>`}
         </div>`).join("")}</div>

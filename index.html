@@ -173,6 +173,7 @@
             box-shadow: var(--shadow);
             overflow: hidden;
         }
+        .hero-video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #10243a; }
         .hero-shot .frame {
             border-radius: 14px 14px 0 0;
             border: 1px solid rgba(255,255,255,.25);
@@ -351,9 +352,10 @@
 
                 <div class="hero-shot">
                     <div class="frame">
-                        <div class="frame-bar"><i></i><i></i><i></i><span>Smart Summarise · Overview</span></div>
-                        <img src="assets/dashboard.jpg?v=2" width="1800" height="875"
-                             alt="Smart Summarise overview: what needs the manager's attention today across care plans, incidents, onboarding and compliance">
+                        <div class="frame-bar"><i></i><i></i><i></i><span>Smart Summarise · Care plan builder</span></div>
+                        <video class="hero-video" src="assets/careplan-demo.mp4" poster="assets/careplan-demo-poster.jpg"
+                               width="1280" height="720" autoplay muted loop playsinline preload="metadata"
+                               aria-label="Demo video: a referral pack with typed letters and handwritten notes is uploaded; Smart Summarise extracts the facts, flags an allergy conflict, answers questions from the manager's handwritten notes, drafts all 25 care plan sections, runs a safety check, and the manager fills the gaps and approves the plan. Fictional data."></video>
                     </div>
                 </div>
             </div>
@@ -616,6 +618,10 @@
 
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
+        // Respect reduced-motion settings: don't autoplay the hero video.
+        if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            const v = document.querySelector('.hero-video'); if (v) { v.removeAttribute('autoplay'); v.pause(); v.controls = true; }
+        }
     </script>
 
 </body>

@@ -286,7 +286,8 @@ window.CAREPLAN_DEMO = {
    "section": "10 Medication Support",
    "sources": "Referral p.1; Discharge letter p.1",
    "safety": true,
-   "answer": "Confirmed with GP surgery (test): penicillin allergy – causes rash. Discharge letter was incomplete. Record penicillin allergy."
+   "answer": "Confirmed with GP surgery: penicillin allergy – causes rash. Discharge letter was incomplete. Record penicillin allergy.",
+   "quote": "Rang GP surgery - PENICILLIN allergy, causes rash. Discharge letter wrong (said none known). Record penicillin!!"
   },
   {
    "q": "Medication conflict: the referral (p.2) lists sertraline with no dose; the discharge letter (p.1) says 50mg each morning. Which is correct?",
@@ -294,7 +295,8 @@ window.CAREPLAN_DEMO = {
    "section": "10 Medication Support",
    "sources": "Referral p.2; Discharge letter p.1",
    "safety": true,
-   "answer": "Sertraline 50mg each morning, confirmed on MAR chart (test). No other regular medication."
+   "answer": "Sertraline 50mg each morning, confirmed on MAR chart. No other regular medication.",
+   "quote": "Sertraline 50mg each morning - checked on MAR chart. No other regular meds."
   },
   {
    "q": "Please confirm all recent falls, the OT recommendation and whether a sensor mat at night is required. Are there other risks (e.g. leaving the house when distressed) for the risk assessment?",
@@ -302,7 +304,8 @@ window.CAREPLAN_DEMO = {
    "section": "18 Risk Assessment",
    "sources": "Referral p.2",
    "safety": true,
-   "answer": "Two falls on stairs at night confirmed. OT referral sent 20/11/2026. Sensor mat agreed and fitted. Leaving the house when distressed: staff follow PBS approach, check whereabouts, call on-call manager if not back within 30 minutes."
+   "answer": "Two falls on stairs at night confirmed. OT referral sent 20/11/2026. Sensor mat agreed and fitted. Leaving the house when distressed: staff follow PBS approach, check whereabouts, call on-call manager if not back within 30 minutes.",
+   "quote": "2 falls on stairs at night - confirmed. OT referral sent 20/11. Sensor mat agreed + fitted."
   },
   {
    "q": "Money: the family sheet says mum is her appointee but they are not sure she understands her money. Does she have capacity to manage finances, and is there a formal appointeeship or deputyship?",
@@ -310,7 +313,8 @@ window.CAREPLAN_DEMO = {
    "section": "14 Consent and Decision-Making",
    "sources": "Family information p.1",
    "safety": true,
-   "answer": "Mum is DWP appointee for benefits. No formal capacity assessment on file for finances – a decision-specific assessment is to be arranged. Do not state a capacity outcome in the plan."
+   "answer": "Mum is DWP appointee for benefits. No formal capacity assessment on file for finances – a decision-specific assessment is to be arranged. Do not state a capacity outcome in the plan.",
+   "quote": "Mum = DWP appointee for benefits. No capacity assessment for finances on file -> arrange decision-specific MCA. Do NOT write an outcome yet."
   },
   {
    "q": "Missing information for: Personal Emergency Evacuation Plan, consent records, agreement to support and signature record.",
@@ -318,7 +322,8 @@ window.CAREPLAN_DEMO = {
    "section": "19 Personal Emergency Evacuation Plan",
    "sources": "All sources reviewed",
    "safety": true,
-   "answer": "PEEP: walks independently, responds to alarm with verbal prompting; may become anxious – one staff to guide her to the assembly point at the front car park. Consent and agreement forms to be completed with her at the plan meeting."
+   "answer": "PEEP: walks independently, responds to alarm with verbal prompting; may become anxious – one staff to guide her to the assembly point at the front car park. Consent and agreement forms to be completed with her at the plan meeting.",
+   "quote": "Walks independently. Responds to alarm with verbal prompting, may get anxious. One staff to guide her to assembly point (front car park)."
   },
   {
    "q": "Have the GP review (2 weeks) and physiotherapy referral from the discharge letter been actioned?",
@@ -326,7 +331,8 @@ window.CAREPLAN_DEMO = {
    "section": "21 Referral and Approval Record",
    "sources": "Discharge letter p.1",
    "safety": false,
-   "answer": "GP review completed 16/09/2026. Physiotherapy: awaiting appointment."
+   "answer": "GP review completed 16/09/2026. Physiotherapy: awaiting appointment.",
+   "quote": "GP review done 16/09/26. Physio - still waiting for appt."
   },
   {
    "q": "Please confirm any other health conditions, medication or support needs not already listed.",
@@ -334,7 +340,8 @@ window.CAREPLAN_DEMO = {
    "section": "11 Health and Wellbeing",
    "sources": "All sources reviewed",
    "safety": true,
-   "answer": "No other known health conditions or medication. Needs listed are complete."
+   "answer": "No other known health conditions or medication. Needs listed are complete.",
+   "quote": "No other conditions or meds known."
   }
  ],
  "analysis": "Most care-plan sections are covered. There are safety-critical conflicts on allergies (penicillin vs 'none known') and medication (sertraline dose missing in one source). Falls and absconding risks need confirmed control measures. Consent, capacity and money management are unclear. The evacuation plan and consent records have no data.",
@@ -575,5 +582,6 @@ window.CAREPLAN_DEMO = {
    "text": "[Page 1]\nFAMILY INFORMATION (fictional, written by sister)\nShe likes to get up around 8am, have toast and tea, then listen to music.\nNeeds prompting to shower and help washing her hair; can dress herself but needs help choosing clothes for the weather.\nShe doesn't like loud places and can get upset if rushed. Calm voice and giving time works best.\nShe would like to get a part-time job in a cafe.\nWe are not sure if she understands her money – she has an appointee (mum)."
   }
  ],
- "managerNotes": "- Confirmed with GP surgery (test): penicillin allergy – causes rash. Discharge letter was incomplete. Record penicillin allergy.\n- Sertraline 50mg each morning, confirmed on MAR chart (test). No other regular medication.\n- Two falls on stairs at night confirmed. OT referral sent 20/11/2026. Sensor mat agreed and fitted. Leaving the house when distressed: staff follow PBS approach, check whereabouts, call on-call manager if not back within 30 minutes.\n- Mum is DWP appointee for benefits. No formal capacity assessment on file for finances – a decision-specific assessment is to be arranged. Do not state a capacity outcome in the plan.\n- PEEP: walks independently, responds to alarm with verbal prompting; may become anxious – one staff to guide her to the assembly point at the front car park. Consent and agreement forms to be completed with her at the plan meeting.\n- GP review completed 16/09/2026. Physiotherapy: awaiting appointment.\n- No other known health conditions or medication. Needs listed are complete."
+ "managerNotes": "- Confirmed with GP surgery: penicillin allergy – causes rash. Discharge letter was incomplete. Record penicillin allergy.\n- Sertraline 50mg each morning, confirmed on MAR chart. No other regular medication.\n- Two falls on stairs at night confirmed. OT referral sent 20/11/2026. Sensor mat agreed and fitted. Leaving the house when distressed: staff follow PBS approach, check whereabouts, call on-call manager if not back within 30 minutes.\n- Mum is DWP appointee for benefits. No formal capacity assessment on file for finances – a decision-specific assessment is to be arranged. Do not state a capacity outcome in the plan.\n- PEEP: walks independently, responds to alarm with verbal prompting; may become anxious – one staff to guide her to the assembly point at the front car park. Consent and agreement forms to be completed with her at the plan meeting.\n- GP review completed 16/09/2026. Physiotherapy: awaiting appointment.\n- No other known health conditions or medication. Needs listed are complete.",
+ "handwrittenNotes": "Visit 20/11/26 - spoke to her, sister + GP surgery (phone)\n\nAllergies - Rang GP surgery - PENICILLIN allergy, causes rash. Discharge letter wrong (said none known). Record penicillin!!\n\nMeds - Sertraline 50mg each morning - checked on MAR chart. No other regular meds.\n\nFalls - 2 falls on stairs at night - confirmed. OT referral sent 20/11. Sensor mat agreed + fitted.\n\nLeaving house when upset - staff follow PBS approach - check whereabouts - ring on-call manager if not back in 30 mins.\n\nMoney - Mum = DWP appointee for benefits. No capacity assessment for finances on file -> arrange decision-specific MCA. Do NOT write an outcome yet.\n\nFire / PEEP - Walks independently. Responds to alarm with verbal prompting, may get anxious. One staff to guide her to assembly point (front car park).\n\nHealth - GP review done 16/09/26. Physio - still waiting for appt. No other conditions or meds known.\n\nTo do - Consent + agreement forms - complete WITH HER at the plan meeting.\n\nR.M."
 };
