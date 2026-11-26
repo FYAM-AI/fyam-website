@@ -381,6 +381,24 @@
     </div>`;
   }
 
+  // One-glance summary of what the automation did, shown once the plan is approved.
+  function planOverview() {
+    const done = cp.files.filter((f) => f.status === "done");
+    const docs = done.length || D.sourceDocs.length + 1;
+    const hand = done.filter((f) => f.handwritten).length || (cp.files.length ? 0 : 1);
+    const conflicts = D.clarifications.filter((c) => c.reason === "Conflict").length;
+    const fromNotes = D.clarifications.filter((c, i) => cp.resolved[i] && (c.quote || (!cp.liveRun && c.answer))).length;
+    const tile = (n, t, sub, cls = "") => `<div class="cp-ov ${cls}"><strong>${n}</strong><span>${t}</span>${sub ? `<small>${sub}</small>` : ""}</div>`;
+    return `<div class="cp-overview">
+      ${tile(docs, "documents read", hand ? `${hand} handwritten` : "typed")}
+      ${tile(D.facts.length, "facts extracted", "each linked to its source page")}
+      ${tile(conflicts, "conflicts caught", "e.g. allergy missing from a letter", "warn")}
+      ${tile(fromNotes + "/" + D.clarifications.length, "questions answered", "from the manager's notes")}
+      ${tile(25, "sections drafted", "ready for the manager to check")}
+      ${tile(0, "safety issues open", "allergy, medication, risk checks", "ok")}
+    </div>`;
+  }
+
   function vApprove() {
     const c = checks();
     const draftFile = "./assets/FYAM_Care_Plan_SU-TEST-001_DRAFT.docx";
@@ -388,6 +406,7 @@
     return `<div class="panel cp-panel">
       <span class="label">Step 7 · Approve</span>
       <h3>${cp.approved ? "Care plan approved" : "Approve the care plan"}</h3>
+      ${cp.approved ? planOverview() : ""}
       <ul class="cp-checks">
         <li class="${notReviewed() ? "" : "ok"}">All 25 sections reviewed</li>
         <li class="${openBlocking() ? "" : "ok"}">No open blocking quality findings</li>

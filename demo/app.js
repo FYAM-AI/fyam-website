@@ -437,7 +437,7 @@ function renderRecordsPage(key) {
   statusStrip.hidden = true;
   actionsPanel.hidden = true;
   workflowLayout.className = "records-layout";
-  workflowLayout.innerHTML = `
+  workflowLayout.innerHTML = `${key === "incident" ? incidentSummary(demoRecords.incident) : ""}
     <section class="panel records-panel">
       <div class="panel-heading">
         <div>
@@ -475,6 +475,31 @@ function renderRecordsPage(key) {
         <div class="approved-draft-text">${formatReportText(cqcDraft)}</div>
       </section>
     ` : ""}`;
+}
+
+// At-a-glance numbers for the manager at the top of the Incidents page.
+function incidentSummary(records) {
+  const total = records.length;
+  const high = records.filter((r) => /high/i.test(r.status)).length;
+  const medium = records.filter((r) => /medium/i.test(r.status)).length;
+  const low = total - high - medium;
+  const services = {};
+  records.forEach((r) => { services[r.location] = (services[r.location] || 0) + 1; });
+  const max = Math.max(1, ...Object.values(services));
+  return `
+    <section class="panel inc-summary">
+      <div class="inc-stats">
+        <div class="inc-stat"><strong>${total}</strong><span>Incidents this month</span></div>
+        <div class="inc-stat high"><strong>${high}</strong><span>High risk – need manager review</span></div>
+        <div class="inc-stat medium"><strong>${medium}</strong><span>Medium risk</span></div>
+        <div class="inc-stat low"><strong>${low}</strong><span>Low risk</span></div>
+      </div>
+      <div class="inc-services">
+        <span class="label">By service</span>
+        ${Object.entries(services).sort((x, y) => y[1] - x[1]).map(([name, n]) => `
+          <div class="inc-bar"><em>${escapeHtml(name)}</em><i><b style="width:${Math.round((n / max) * 100)}%"></b></i><strong>${n}</strong></div>`).join("")}
+      </div>
+    </section>`;
 }
 
 function recordPageTitle(key) {

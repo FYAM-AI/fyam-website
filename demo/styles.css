@@ -1261,3 +1261,30 @@ input:focus, textarea:focus, select:focus, button:focus-visible { outline: 2px s
 .cp-demo-btn { margin-left: auto; color: #5b6b7b; }
 @media (max-width: 640px) { .cp-gap { grid-template-columns: 1fr; } .cp-demo-btn { margin-left: 0; } }
 .cp-panel .primary-button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* incidents: at-a-glance summary */
+.inc-summary { grid-column: 1 / -1; display: grid; grid-template-columns: 1.6fr 1fr; gap: 22px; align-items: center; }
+.inc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.inc-stat { border: 1px solid #dbe5ee; border-radius: 12px; padding: 14px 16px; background: #f8fbfd; }
+.inc-stat strong { display: block; font-size: 30px; line-height: 1.1; color: var(--navy); }
+.inc-stat span { display: block; margin-top: 4px; font-size: 13px; color: #5b6b7b; }
+.inc-stat.high { background: #fdf1f0; border-color: #f3c9c4; } .inc-stat.high strong { color: #b42318; }
+.inc-stat.medium { background: #fff7e8; border-color: #f2dcae; } .inc-stat.medium strong { color: #a15c07; }
+.inc-stat.low { background: #eef8f6; border-color: #c8e7e2; } .inc-stat.low strong { color: #137a73; }
+.inc-services { display: grid; gap: 8px; }
+.inc-bar { display: grid; grid-template-columns: 96px 1fr 24px; gap: 10px; align-items: center; font-size: 14px; }
+.inc-bar em { font-style: normal; color: #33475b; }
+.inc-bar i { height: 8px; background: #e6eef5; border-radius: 99px; overflow: hidden; }
+.inc-bar b { display: block; height: 100%; background: linear-gradient(90deg, var(--blue, #2f78b7), var(--teal, #1c9a91)); border-radius: 99px; }
+.inc-bar strong { text-align: right; color: var(--navy); }
+@media (max-width: 900px) { .inc-summary { grid-template-columns: 1fr; } .inc-stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* care plan: one-glance overview after approval */
+.cp-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0 18px; }
+.cp-ov { border: 1px solid #dbe5ee; border-radius: 12px; padding: 14px 16px; background: #f8fbfd; }
+.cp-ov strong { display: block; font-size: 30px; line-height: 1.1; color: var(--navy); }
+.cp-ov span { display: block; font-weight: 600; color: #33475b; margin-top: 2px; }
+.cp-ov small { display: block; color: #6b7b8b; font-size: 12.5px; margin-top: 2px; }
+.cp-ov.warn { background: #fff7e8; border-color: #f2dcae; } .cp-ov.warn strong { color: #a15c07; }
+.cp-ov.ok { background: #eef8f6; border-color: #c8e7e2; } .cp-ov.ok strong { color: #137a73; }
+@media (max-width: 760px) { .cp-overview { grid-template-columns: repeat(2, 1fr); } }
